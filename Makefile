@@ -1,0 +1,28 @@
+.PHONY: setup dev-api dev-web check check-api check-web fmt db-up db-down
+
+setup:
+	cd backend && uv sync
+	cd web && pnpm install
+
+dev-api:
+	cd backend && uv run uvicorn pehchana.main:app --reload --port 8000
+
+dev-web:
+	cd web && pnpm dev
+
+check: check-api check-web
+
+check-api:
+	cd backend && uv run ruff check . && uv run ruff format --check . && uv run mypy && uv run pytest
+
+check-web:
+	cd web && pnpm lint && pnpm typecheck && pnpm build
+
+fmt:
+	cd backend && uv run ruff check --fix . && uv run ruff format .
+
+db-up:
+	docker compose up -d db
+
+db-down:
+	docker compose down

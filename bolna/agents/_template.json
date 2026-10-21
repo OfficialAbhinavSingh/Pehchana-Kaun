@@ -1,0 +1,33 @@
+{
+  "_comment": "Template for one AI arm. `pk sync-agents` (WS2) fills tools_config.synthesizer/transcriber from bolna/arms.yaml, the prompt from bolna/personas/, and the accuse_bot function from bolna/functions/. Shape follows https://www.bolna.ai/docs/AGENTS.md (pipelines is an array of arrays). Values marked TODO must be confirmed against Bolna docs for each provider.",
+  "agent_config": {
+    "agent_name": "pehchana-kaun-<arm_id>",
+    "agent_welcome_message": "TODO(WS2): persona greeting, e.g. 'Haan hello? Kaun bol raha hai?'",
+    "webhook_url": "${PUBLIC_BASE_URL}/bolna/webhook",
+    "tasks": [
+      {
+        "task_type": "conversation",
+        "toolchain": {
+          "execution": "parallel",
+          "pipelines": [["transcriber", "llm", "synthesizer"]]
+        },
+        "tools_config": {
+          "llm_agent": {
+            "agent_type": "simple_llm_agent",
+            "agent_flow_type": "streaming",
+            "llm_config": { "provider": "TODO", "model": "TODO", "max_tokens": 120, "temperature": 0.7 }
+          },
+          "synthesizer": { "provider": "TODO(from arms.yaml)", "provider_config": {}, "stream": true },
+          "transcriber": { "provider": "TODO(from arms.yaml)", "stream": true },
+          "input": { "provider": "plivo", "format": "wav" },
+          "output": { "provider": "plivo", "format": "wav" },
+          "api_tools": { "tools": ["<accuse_bot.json>"] }
+        },
+        "task_config": { "call_terminate": 300, "hangup_after_silence": 15 }
+      }
+    ]
+  },
+  "agent_prompts": {
+    "task_1": { "system_prompt": "<bolna/personas/<persona>.md>" }
+  }
+}

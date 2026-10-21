@@ -1,0 +1,29 @@
+{
+  "name": "accuse_bot",
+  "description": "Call this IMMEDIATELY when the caller says or clearly implies that you are a bot, AI, robot or not a real person (for example: 'tum bot ho', 'aap AI ho', 'you're a bot', 'tu robot hai'). Do not call it when the caller is just chatting about bots or AI in general.",
+  "pre_call_message": "",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "caller_phrase": {
+        "type": "string",
+        "description": "The caller's exact words when they made the accusation"
+      },
+      "agent_id": { "type": "string", "description": "Agent ID" },
+      "from_number": { "type": "string", "description": "Caller's phone number" }
+    },
+    "required": ["caller_phrase", "agent_id", "from_number"]
+  },
+  "key": "custom_task",
+  "value": {
+    "method": "POST",
+    "param": {
+      "caller_phrase": "%(caller_phrase)s",
+      "agent_id": "%(agent_id)s",
+      "from_number": "%(from_number)s"
+    },
+    "url": "${PUBLIC_BASE_URL}/bolna/fn/accuse",
+    "api_token": "Bearer ${BOLNA_SHARED_SECRET}",
+    "headers": {}
+  }
+}

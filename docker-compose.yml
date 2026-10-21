@@ -1,0 +1,18 @@
+# Local Postgres (optional; SQLite works for most dev). `make db-up`
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: pk
+      POSTGRES_PASSWORD: pk
+      POSTGRES_DB: pk
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pk"]
+      interval: 5s
+      retries: 10
+volumes:
+  pgdata:

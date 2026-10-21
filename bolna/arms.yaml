@@ -1,0 +1,57 @@
+# Who can pick up a Pehchana Kaun? call.
+#
+# Every arm is either the human control group or one AI voice stack running as its
+# own Bolna agent. Secrets and phone numbers never live in this file: each arm names
+# the environment variables that hold them (see .env.example).
+#
+# public_label is what the public leaderboard shows when REVEAL_VENDORS=false, so
+# sponsors are compared on language gaps rather than named and shamed.
+
+arms:
+  - id: human
+    kind: human
+    public_label: "Insaan (control)"
+    vendor: null
+    weight: 1.0
+    # Comma-separated E.164 numbers of volunteers on shift. Plivo rings them all at
+    # once and the first to answer takes the call.
+    dial_numbers_env: HUMAN_ARM_NUMBERS
+    # Human arm is only eligible inside these windows (or when an admin override is on).
+    live_hours:
+      timezone: Asia/Kolkata
+      windows:
+        - { days: [mon, tue, wed, thu, fri], start: "19:00", end: "22:00" }
+        - { days: [sat, sun], start: "11:00", end: "22:00" }
+
+  - id: kalpa
+    kind: ai
+    public_label: "Voice A"
+    vendor: "Kalpa Labs"
+    weight: 1.0
+    bolna_agent_id_env: BOLNA_AGENT_ID_KALPA
+    dial_numbers_env: BOLNA_NUMBER_KALPA
+    stack:
+      tts: { provider: kalpa, model: kalpa-tts-1 }
+      stt: { provider: deepgram, model: nova-3, language: multi }
+
+  - id: cartesia
+    kind: ai
+    public_label: "Voice B"
+    vendor: "Cartesia"
+    weight: 1.0
+    bolna_agent_id_env: BOLNA_AGENT_ID_CARTESIA
+    dial_numbers_env: BOLNA_NUMBER_CARTESIA
+    stack:
+      tts: { provider: cartesia, model: sonic-3.6 }
+      stt: { provider: deepgram, model: nova-3, language: multi }
+
+  - id: sarvam
+    kind: ai
+    public_label: "Voice C"
+    vendor: "Sarvam"
+    weight: 1.0
+    bolna_agent_id_env: BOLNA_AGENT_ID_SARVAM
+    dial_numbers_env: BOLNA_NUMBER_SARVAM
+    stack:
+      tts: { provider: sarvam, model: bulbul-v3 }
+      stt: { provider: sarvam, model: saaras-v4 }
