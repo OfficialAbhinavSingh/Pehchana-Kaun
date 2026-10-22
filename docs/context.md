@@ -73,4 +73,4 @@ Hinglish, unsafe agents (no consent, PII leaks), skipping Bolna.
 3. Human arm needs volunteers on shift. Schedule "live hours".
 4. Consent + India's DPDP Act. See ethics.md.
 5. Kalpa, Josh Talks / AI4Bharat or Artificial Analysis could ship something similar.
-   Launch publicly by **26 Oct**.
+   Launch publicly by **27 Oct**.
