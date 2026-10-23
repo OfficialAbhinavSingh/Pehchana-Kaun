@@ -13,7 +13,17 @@ import enum
 import uuid
 from datetime import UTC, datetime
 
-from sqlalchemy import JSON, DateTime, Enum, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import (
+    JSON,
+    DateTime,
+    Enum,
+    Float,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from pehchana.db import Base
@@ -57,7 +67,10 @@ class Call(Base):
     arm_kind: Mapped[str] = mapped_column(String(16))  # "human" | "ai"
     caller_hash: Mapped[str | None] = mapped_column(String(64), index=True)
 
-    plivo_call_uuid: Mapped[str | None] = mapped_column(String(64), unique=True)
+    # Telephony vendor ("plivo", ...) and its id for this call leg. Vendor-neutral so
+    # switching providers needs no schema change (see telephony/base.py).
+    provider: Mapped[str | None] = mapped_column(String(32))
+    provider_call_id: Mapped[str | None] = mapped_column(String(64))
     bolna_execution_id: Mapped[str | None] = mapped_column(String(64), unique=True)
 
     started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
@@ -66,11 +79,15 @@ class Call(Base):
     duration_s: Mapped[float | None] = mapped_column(Float)
 
     recording_url: Mapped[str | None] = mapped_column(Text)
+    # 0-based channel of the caller in the recording; set by the telephony provider.
+    recording_caller_channel: Mapped[int | None] = mapped_column(Integer)
     language: Mapped[str | None] = mapped_column(String(16))
     # Word-level transcript of both channels (Deepgram), see integrations/deepgram.py.
     transcript: Mapped[list[dict[str, object]] | None] = mapped_column(JSON)
     bolna_payload: Mapped[dict[str, object] | None] = mapped_column(JSON)
     processing_error: Mapped[str | None] = mapped_column(Text)
+
+    __table_args__ = (UniqueConstraint("provider", "provider_call_id"),)
 
     accusations: Mapped[list[Accusation]] = relationship(
         back_populates="call", cascade="all, delete-orphan", order_by="Accusation.at_s"
