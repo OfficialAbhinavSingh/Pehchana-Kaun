@@ -45,7 +45,6 @@ def test_ws3_kaplan_meier_with_censoring():
     assert stats.n_accused == 3
 
 
-@todo
 def test_ws1_human_arm_only_in_live_hours():
     from datetime import UTC, datetime
 
