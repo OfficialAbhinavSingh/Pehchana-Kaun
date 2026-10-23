@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session
 
 from pehchana.arms import Arm, NoArmAvailable, choose_arm, eligible_arms
 from pehchana.config import Settings
-from pehchana.models import Call, CallStatus, Channel, ShiftOverride, utcnow
+from pehchana.models import Call, CallStatus, Channel, ShiftOverride, Source, utcnow
 from pehchana.telephony.base import CallPlan, ProviderResponse, TelephonyProvider
 
 # How far back "recent calls" looks when balancing arms.
@@ -40,7 +40,7 @@ def _humans_override(session: Session, now: datetime) -> bool | None:
 def _recent_counts(session: Session, now: datetime) -> dict[str, int]:
     rows = session.execute(
         select(Call.arm_id, func.count())
-        .where(Call.started_at >= now - BALANCE_WINDOW)
+        .where(Call.started_at >= now - BALANCE_WINDOW, Call.source == Source.REAL)
         .group_by(Call.arm_id)
     )
     return {arm_id: n for arm_id, n in rows}
@@ -58,6 +58,21 @@ def start_call(
     """Caller dialled in: pick an arm, record the Call, return the provider's answer."""
     now = now or utcnow()
     incoming = provider.parse_incoming(form)
+
+    # Vendors retry the answer URL on slow responses. Same call id: replay the same arm
+    # instead of inserting a duplicate (unique constraint) or rerouting the caller.
+    existing = session.scalars(
+        select(Call).where(
+            Call.provider == provider.name,
+            Call.provider_call_id == incoming.provider_call_id,
+        )
+    ).first()
+    if existing is not None:
+        arm = next((a for a in arms if a.id == existing.arm_id), None)
+        if arm is None or existing.status not in _OPEN:
+            return provider.busy_response()
+        return _answer(provider, settings, existing, arm)
+
     candidates = eligible_arms(
         arms, channel="phone", now=now, humans_override=_humans_override(session, now)
     )
@@ -77,7 +92,12 @@ def start_call(
     )
     session.add(call)
     session.commit()
+    return _answer(provider, settings, call, arm)
 
+
+def _answer(
+    provider: TelephonyProvider, settings: Settings, call: Call, arm: Arm
+) -> ProviderResponse:
     base = f"{settings.public_base_url.rstrip('/')}/telephony/{provider.name}"
     return provider.answer_response(
         CallPlan(

@@ -102,7 +102,17 @@ def test_answer_xml_consent_record_then_dial(plivo):
     assert 'recordChannelType="stereo"' in xml
     assert "recording?call_id=c1" in xml
     assert "dial-status?call_id=c1" in xml
-    assert "+911111111111&lt;+912222222222" in xml  # "<"-separated list, XML-escaped
+    # Simultaneous ring = one <Number> per number (first to answer wins).
+    assert xml.count("<Number>") == 2
+    assert "<Number>+911111111111</Number>" in xml
+    assert "<Number>+912222222222</Number>" in xml
+    assert "&lt;" not in xml
+
+
+def test_answer_xml_caps_ring_and_call_length(plivo):
+    xml = plivo.answer_response(PLAN).body
+    assert 'timeout="30"' in xml  # stop ringing an arm that never picks up
+    assert 'timeLimit="600"' in xml  # Plivo's default is 4 hours
 
 
 def test_answer_xml_falls_back_to_tts_consent(plivo):

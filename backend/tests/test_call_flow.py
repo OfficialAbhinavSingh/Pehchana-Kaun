@@ -78,6 +78,17 @@ def test_full_happy_path(app_client):
     assert only_call().recording_url == "https://r.test/a.mp3"
 
 
+def test_answer_retry_is_idempotent(app_client):
+    # Plivo retries the answer URL on a slow response; same CallUUID must not 500
+    # or reroute the caller to a different arm.
+    form = {"From": "+919876543210", "CallUUID": "dup-1"}
+    first = post(app_client, "/telephony/plivo/answer", form)
+    second = post(app_client, "/telephony/plivo/answer", form)
+    assert first.status_code == second.status_code == 200
+    assert only_call().provider_call_id == "dup-1"  # .one() fails on a duplicate row
+    assert "call_id=" + only_call().id in second.text
+
+
 def test_unanswered_dial_marks_failed_and_is_not_processed(app_client):
     post(app_client, "/telephony/plivo/answer", {"From": "+91", "CallUUID": "u2"})
     cid = only_call().id

@@ -21,7 +21,7 @@ docs; confirm them against a real call on Day 1 (docs/architecture.md).
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
 
 from plivo import plivoxml
 from plivo.utils import validate_v3_signature
@@ -45,10 +45,6 @@ _CONSENT_TEXT = (
     "This is a game. You may be speaking to an AI. The call is recorded for research. "
     "Stay on the line to agree."
 )
-
-
-def _number_list(numbers: Sequence[str]) -> str:
-    return "<".join(numbers)  # Plivo rings every number in a "<"-separated list at once
 
 
 def _float(value: str | None) -> float | None:
@@ -107,14 +103,18 @@ class PlivoProvider:
                 callback_method="POST",
             )
         )
-        response.add(
-            plivoxml.DialElement(
-                action=plan.dial_status_url,
-                method="POST",
-                caller_id=plan.caller_id,
-                redirect=False,
-            ).add(plivoxml.NumberElement(_number_list(plan.dial_numbers)))
+        dial = plivoxml.DialElement(
+            action=plan.dial_status_url,
+            method="POST",
+            caller_id=plan.caller_id,
+            redirect=False,
+            timeout=plan.ring_timeout_s,
+            time_limit=plan.time_limit_s,
         )
+        # One <Number> per number: Plivo rings them all at once, first to answer wins.
+        for number in plan.dial_numbers:
+            dial.add(plivoxml.NumberElement(number))
+        response.add(dial)
         return ProviderResponse(response.to_string(False), XML)
 
     def busy_response(self) -> ProviderResponse:

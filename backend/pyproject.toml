@@ -14,6 +14,7 @@ dependencies = [
     "plivo>=4.63.0",
     "psycopg[binary]>=3.3.6",
     "pydantic-settings>=2.16.1",
+    "python-dotenv>=1.2.4",
     "python-multipart>=0.0.32",
     "pyyaml>=6.0.3",
     "sqlalchemy>=2",

@@ -44,6 +44,8 @@ class CallPlan:
     consent_audio_url: str | None
     dial_status_url: str  # provider POSTs the dial result here
     recording_url: str  # provider POSTs the finished recording here
+    ring_timeout_s: int = 30  # give up on an arm that doesn't pick up
+    time_limit_s: int = 600  # hard cap per game (Plivo's own default is 4 hours)
 
 
 @dataclass(frozen=True)
