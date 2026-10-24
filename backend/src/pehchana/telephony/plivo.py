@@ -131,7 +131,9 @@ class PlivoProvider:
         return DialResult(
             answered=status in _ANSWERED or bool(duration),
             duration_s=duration,
-            provider_call_id=form.get("CallUUID"),
+            # The Dial action docs list DialALegUUID (the caller's leg, the id we stored
+            # on /answer); CallUUID is a fallback in case Plivo also sends it.
+            provider_call_id=form.get("DialALegUUID") or form.get("CallUUID") or None,
         )
 
     def parse_recording(self, form: Mapping[str, str]) -> RecordingEvent:

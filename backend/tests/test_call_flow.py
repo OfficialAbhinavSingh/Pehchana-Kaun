@@ -262,6 +262,17 @@ def test_dial_status_for_another_provider_call_id_is_refused(app_client):
     assert (call.status, call.ended_at, call.duration_s) == (CallStatus.ROUTED, None, None)
 
 
+def test_dial_status_is_matched_on_the_documented_a_leg_uuid(app_client):
+    # Plivo's Dial action docs list DialALegUUID, not CallUUID; the check must not skip.
+    cid = _routed_call(app_client, "mine")
+    q = f"/telephony/plivo/dial-status?call_id={cid}"
+    r = post(app_client, q, {"DialALegUUID": "someone-else", "DialBLegStatus": "hangup"})
+    assert r.status_code == 409
+    form = {"DialALegUUID": "mine", "DialBLegStatus": "hangup", "DialBLegDuration": "9"}
+    assert post(app_client, q, form).status_code == 204
+    assert only_call().status == CallStatus.ENDED
+
+
 def test_dial_status_with_the_matching_call_id_is_accepted(app_client):
     cid = _routed_call(app_client, "mine")
     q = f"/telephony/plivo/dial-status?call_id={cid}"
