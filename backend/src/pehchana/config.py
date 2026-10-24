@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import os
 from functools import lru_cache
 from pathlib import Path
 
+from dotenv import dotenv_values
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -43,6 +45,9 @@ class Settings(BaseSettings):
     )
     enforce_bolna_ip_allowlist: bool = False
 
+    # Which telephony vendor handles the public number (see telephony/registry.py).
+    telephony_provider: str = "plivo"
+
     # Plivo
     plivo_auth_id: str = ""
     plivo_auth_token: str = ""
@@ -70,3 +75,9 @@ class Settings(BaseSettings):
 @lru_cache
 def get_settings() -> Settings:
     return Settings()
+
+
+def arm_env() -> dict[str, str]:
+    """Env vars named in arms.yaml. Settings reads .env itself, so merge it in here."""
+    values = {k: v for k, v in dotenv_values(REPO_ROOT / ".env").items() if v is not None}
+    return {**values, **os.environ}

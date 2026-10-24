@@ -25,6 +25,9 @@ flowchart LR
 
 ## Call flow
 
+Telephony is vendor-neutral behind a `TelephonyProvider` contract; design and
+decisions are in [telephony.md](telephony.md). Plivo is the first implementation.
+
 1. Caller dials the Plivo number. Plivo POSTs `/telephony/plivo/answer`.
 2. Backend verifies the Plivo signature, hashes the caller number, creates a `Call`,
    picks an arm (`arms.eligible_arms` then `arms.choose_arm`), and returns XML:
