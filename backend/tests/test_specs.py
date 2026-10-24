@@ -29,7 +29,6 @@ def test_ws2_ignores_talk_about_bots():
     assert detect_accusations(words) == []
 
 
-@todo
 def test_ws3_kaplan_meier_with_censoring():
     from pehchana.scoring import Observation, arm_stats
 
