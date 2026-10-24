@@ -66,6 +66,8 @@ class RecordingEvent:
     url: str
     caller_channel: int  # 0-based channel of the caller in the recording
     duration_s: float | None = None
+    # The vendor's id for the call this recording belongs to, if its callback carries one.
+    provider_call_id: str | None = None
     # Extra headers the pipeline must send to download ``url`` (empty if public).
     download_headers: Mapping[str, str] = field(default_factory=dict)
 

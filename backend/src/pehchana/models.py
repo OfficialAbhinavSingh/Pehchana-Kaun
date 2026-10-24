@@ -78,6 +78,8 @@ class Call(Base):
     ended_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     duration_s: Mapped[float | None] = mapped_column(Float)
 
+    # A bearer secret: whoever holds it can play the call. Validated against
+    # RECORDING_HOST_ALLOWLIST before it is stored; never log it or return it from an API.
     recording_url: Mapped[str | None] = mapped_column(Text)
     # 0-based channel of the caller in the recording; set by the telephony provider.
     recording_caller_channel: Mapped[int | None] = mapped_column(Integer)
@@ -87,7 +89,10 @@ class Call(Base):
     bolna_payload: Mapped[dict[str, object] | None] = mapped_column(JSON)
     processing_error: Mapped[str | None] = mapped_column(Text)
 
-    __table_args__ = (UniqueConstraint("provider", "provider_call_id"),)
+    # Named so create_all and migration 0002 give the constraint the same name.
+    __table_args__ = (
+        UniqueConstraint("provider", "provider_call_id", name="uq_calls_provider_call_id"),
+    )
 
     accusations: Mapped[list[Accusation]] = relationship(
         back_populates="call", cascade="all, delete-orphan", order_by="Accusation.at_s"

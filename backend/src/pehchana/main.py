@@ -9,13 +9,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from pehchana import __version__
 from pehchana.api import admin, bolna, health, leaderboard, telephony, webcall
 from pehchana.config import get_settings
-from pehchana.db import create_all
+from pehchana.migrate import upgrade
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     if get_settings().env == "dev":
-        create_all()  # prod schema goes through Alembic (docs/plan.md)
+        upgrade()  # dev only; elsewhere run `pk migrate` as a deploy step
     yield
 
 
