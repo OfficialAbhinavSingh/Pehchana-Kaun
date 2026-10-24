@@ -6,12 +6,12 @@ app = typer.Typer(no_args_is_help=True, help="Pehchana Kaun? operator commands")
 
 
 @app.command()
-def initdb() -> None:
-    """Create tables locally (dev only; prod uses Alembic)."""
-    from pehchana.db import create_all
+def migrate() -> None:
+    """Create or upgrade the database schema to the latest Alembic revision."""
+    from pehchana.migrate import upgrade
 
-    create_all()
-    typer.echo("tables created")
+    upgrade()
+    typer.echo("database is up to date")
 
 
 @app.command("seed-demo")

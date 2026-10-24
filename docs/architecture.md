@@ -85,6 +85,13 @@ Backend needs a stable public HTTPS URL for Plivo/Bolna callbacks and a Postgres
 Web is a plain Next.js app. Pick the simplest host the team already has access to and
 write the choice here.
 
+Schema changes are Alembic revisions in `backend/migrations/versions/`. Run
+`uv run pk migrate` as a deploy step (the API only migrates itself when `ENV=dev`). It
+also adopts databases that `create_all` made before Alembic existed: it stamps them at
+the matching revision and upgrades, keeping their rows. Change a model? Add a revision
+(`uv run alembic revision --autogenerate -m ...`, then read it); the test
+`test_fresh_database_matches_the_models` fails if models and migrations drift.
+
 ## Day-1 unknowns (verify with a real call, then update this doc)
 
 - [ ] Can we get an Indian inbound number on Plivo without company DLT paperwork?

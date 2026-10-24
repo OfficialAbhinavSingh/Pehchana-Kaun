@@ -85,7 +85,8 @@ def test_no_calls():
     stats = arm_stats("sarvam", [])
     assert (stats.n_calls, stats.n_accused, stats.accusation_rate) == (0, 0, 0.0)
     assert stats.median_turing_clock_s is None
-    assert stats.fooled_at_60s == 1.0
+    assert stats.fooled_at_60s is None
+    assert stats.max_observed_s is None
     assert stats.curve == []
 
 
@@ -100,8 +101,12 @@ def test_median_is_the_first_time_at_or_below_half():
     # S lands on exactly 0.5 at t=20 and never goes lower. docs/metrics.md defines the
     # median as the first t with S <= 0.5, so it is 20. (lifelines needs S < 0.5 and
     # would call this arm "passed".)
-    obs = [Observation(10, True), Observation(20, True), Observation(30, False)]
-    obs += [Observation(40, False)]
+    obs = [
+        Observation(10, True),
+        Observation(20, True),
+        Observation(30, False),
+        Observation(40, False),
+    ]
     assert survival_at(kaplan_meier(obs), 20) == 0.5
     assert arm_stats("x", obs).median_turing_clock_s == 20
 
@@ -119,7 +124,8 @@ def test_survival_at_is_a_right_continuous_step():
     assert survival_at(curve, 0) == 1.0
     assert survival_at(curve, 4.99) == 1.0
     assert survival_at(curve, 5) == pytest.approx(0.9333333333)
-    assert survival_at(curve, 1000) == pytest.approx(0.1741071429)
+    assert survival_at(curve, 75) == pytest.approx(0.1741071429)
+    assert survival_at(curve, 75.1) is None  # nobody was observed past 75 s
 
 
 @pytest.mark.parametrize("bad", [-1.0, float("nan"), float("inf")])
@@ -144,3 +150,27 @@ def test_first_calls_keeps_each_callers_earliest_call_and_all_anonymous_ones():
     ]
     kept = first_calls(calls, caller=lambda c: c[0], started_at=lambda c: c[1])
     assert [c[2] for c in kept] == ["a-first", "web-1", "b-first", "web-2"]
+
+
+def test_survival_is_unknown_past_the_longest_call():
+    # Three callers hung up at 10 s without accusing. Nobody talked to the arm at 60 s,
+    # so "fooled at 60 s" is unknown, not 100%.
+    stats = arm_stats("x", [Observation(10, False)] * 3)
+    assert stats.fooled_at_60s is None
+    assert stats.max_observed_s == 10
+
+
+def test_survival_past_the_end_is_known_when_everyone_was_caught():
+    # S already hit 0, so it stays 0 however far out we look.
+    stats = arm_stats("x", [Observation(5, True), Observation(20, True)])
+    assert stats.fooled_at_60s == 0.0
+    assert survival_at(stats.curve, 600) == 0.0
+
+
+def test_a_passed_arm_reports_how_long_it_was_watched():
+    # Dropped calls at 5 s never bring the curve to 0.5, so there is no median. The
+    # leaderboard must not read that as "survived": it only survived 5 s.
+    stats = arm_stats("x", [Observation(5, False)] * 5)
+    assert stats.median_turing_clock_s is None
+    assert stats.max_observed_s == 5
+    assert stats.fooled_at_60s is None

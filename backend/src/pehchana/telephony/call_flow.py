@@ -7,16 +7,21 @@ All routing and bookkeeping for one game lives here and talks only to the
 from __future__ import annotations
 
 import hashlib
+import logging
 from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from pehchana.arms import Arm, NoArmAvailable, choose_arm, eligible_arms
 from pehchana.config import Settings
 from pehchana.models import Call, CallStatus, Channel, ShiftOverride, Source, utcnow
 from pehchana.telephony.base import CallPlan, ProviderResponse, TelephonyProvider
+from pehchana.telephony.recordings import InvalidRecording, validate_recording_url
+
+log = logging.getLogger(__name__)
 
 # How far back "recent calls" looks when balancing arms.
 BALANCE_WINDOW = timedelta(hours=6)
@@ -61,17 +66,9 @@ def start_call(
 
     # Vendors retry the answer URL on slow responses. Same call id: replay the same arm
     # instead of inserting a duplicate (unique constraint) or rerouting the caller.
-    existing = session.scalars(
-        select(Call).where(
-            Call.provider == provider.name,
-            Call.provider_call_id == incoming.provider_call_id,
-        )
-    ).first()
+    existing = _find_call(session, provider.name, incoming.provider_call_id)
     if existing is not None:
-        arm = next((a for a in arms if a.id == existing.arm_id), None)
-        if arm is None or existing.status not in _OPEN:
-            return provider.busy_response()
-        return _answer(provider, settings, existing, arm)
+        return _replay(provider, settings, arms, existing)
 
     candidates = eligible_arms(
         arms, channel="phone", now=now, humans_override=_humans_override(session, now)
@@ -91,7 +88,42 @@ def start_call(
         started_at=now,
     )
     session.add(call)
-    session.commit()
+    try:
+        session.commit()
+    except IntegrityError:
+        # Two copies of the same webhook passed the lookup above together; the other one
+        # inserted first. Answer this one from the winner's row so both callers' legs agree.
+        session.rollback()
+        existing = _find_call(session, provider.name, incoming.provider_call_id)
+        if existing is None:
+            raise  # some other constraint failed: not a retry, so do not hide it
+        return _replay(provider, settings, arms, existing)
+    return _answer(provider, settings, call, arm)
+
+
+def _find_call(session: Session, provider_name: str, provider_call_id: str) -> Call | None:
+    return session.scalars(
+        select(Call).where(
+            Call.provider == provider_name, Call.provider_call_id == provider_call_id
+        )
+    ).first()
+
+
+def _replay(
+    provider: TelephonyProvider, settings: Settings, arms: Sequence[Arm], call: Call
+) -> ProviderResponse:
+    """Answer a retried webhook again with the arm already chosen for this call."""
+    arm = next((a for a in arms if a.id == call.arm_id), None)
+    if arm is None or call.status not in _OPEN:
+        # Retry of a call that already finished, or whose arm left the config.
+        log.warning(
+            "answer retry for call %s not replayed: status=%s arm=%s%s",
+            call.id,
+            call.status.value,
+            call.arm_id,
+            "" if arm else " (no longer configured)",
+        )
+        return provider.busy_response()
     return _answer(provider, settings, call, arm)
 
 
@@ -110,13 +142,33 @@ def _answer(
     )
 
 
+class CallMismatch(Exception):
+    """A callback is validly signed but does not belong to the call it names."""
+
+
+def _check_belongs(call: Call, provider: TelephonyProvider, provider_call_id: str | None) -> None:
+    """Refuse to touch ``call`` for a callback from another vendor or another call.
+
+    The signature proves the vendor sent the request, not that ``?call_id=`` is the call
+    it is about. ``provider_call_id`` is None when the vendor's callback has no id; then
+    the signed ``call_id`` in the URL is all there is to go on.
+    """
+    if call.provider != provider.name:
+        log.warning("call %s belongs to %s, not %s", call.id, call.provider, provider.name)
+        raise CallMismatch("callback arrived on another provider's route")
+    if provider_call_id is not None and provider_call_id != call.provider_call_id:
+        log.warning("call %s: callback carries a different %s call id", call.id, provider.name)
+        raise CallMismatch("callback names a different provider call id")
+
+
 def finish_dial(
     *, session: Session, provider: TelephonyProvider, call: Call, form: Mapping[str, str]
 ) -> None:
     """Dial ended: record timings, or mark FAILED if the arm never picked up."""
+    result = provider.parse_dial_status(form)
+    _check_belongs(call, provider, result.provider_call_id)
     if call.status not in _OPEN:
         return  # late or duplicate callback must not rewrite a finished call
-    result = provider.parse_dial_status(form)
     now = utcnow()
     call.ended_at = now
     if not result.answered:
@@ -130,11 +182,40 @@ def finish_dial(
 
 
 def attach_recording(
-    *, session: Session, provider: TelephonyProvider, call: Call, form: Mapping[str, str]
+    *,
+    session: Session,
+    provider: TelephonyProvider,
+    settings: Settings,
+    call: Call,
+    form: Mapping[str, str],
 ) -> bool:
-    """Store the recording. Returns True if the call should now be processed."""
-    event = provider.parse_recording(form)
-    call.recording_url = event.url
-    call.recording_caller_channel = event.caller_channel
+    """Store the recording once. Returns True if the call should now be processed.
+
+    Vendors repeat callbacks until they see a 2xx, and may send two at once. The first
+    recording wins: the claim is one conditional UPDATE, so of two concurrent callbacks
+    exactly one sees ``True`` and queues the (costly, Deepgram + LLM) pipeline.
+
+    Raises ``InvalidRecording`` for a missing, malformed or untrusted URL (nothing is
+    stored) and ``CallMismatch`` for a callback that is not about this call.
+    """
+    try:
+        event = provider.parse_recording(form)
+    except InvalidRecording:
+        raise
+    except ValueError as e:  # a provider's "this callback has no recording"
+        raise InvalidRecording(str(e)) from e
+    _check_belongs(call, provider, event.provider_call_id)
+    validate_recording_url(event.url, settings.recording_host_allowlist)
+    claimed = session.scalars(
+        update(Call)
+        .where(Call.id == call.id, Call.recording_url.is_(None))
+        .values(recording_url=event.url, recording_caller_channel=event.caller_channel)
+        .returning(Call.id)
+    ).first()
     session.commit()
-    return call.status != CallStatus.FAILED
+    session.refresh(call)  # the UPDATE bypassed the ORM object
+    if claimed is None:
+        if call.recording_url != event.url:
+            log.warning("call %s already has a recording; ignoring a different one", call.id)
+        return False
+    return call.status not in (CallStatus.FAILED, CallStatus.PROCESSED)

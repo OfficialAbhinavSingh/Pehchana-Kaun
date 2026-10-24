@@ -46,9 +46,14 @@ class ArmStats:
     n_calls: int
     n_accused: int
     accusation_rate: float
-    median_turing_clock_s: float | None  # None = curve never fell to 0.5 (arm "passed")
-    fooled_at_60s: float  # P(not yet accused at 60 s)
+    # None = the curve never fell to 0.5 within max_observed_s: the Turing Clock is longer
+    # than that, which only means "passed" if max_observed_s is long.
+    median_turing_clock_s: float | None
+    # P(not yet accused at 60 s); None when no call was watched that long.
+    fooled_at_60s: float | None
     curve: list[SurvivalPoint]
+    # The longest observed time (accusation or hang-up); None with no calls.
+    max_observed_s: float | None = None
     # 95% CI for the median; None at either end = that bound is not reached yet.
     median_ci_low_s: float | None = None
     median_ci_high_s: float | None = None
@@ -94,9 +99,14 @@ def _log_log_ci(survival: float, greenwood: float, z: float) -> tuple[float | No
     return survival ** math.exp(z * se), survival ** math.exp(-z * se)
 
 
-def survival_at(curve: Sequence[SurvivalPoint], t: float) -> float:
-    """S(t) read off a KM curve (right-continuous step). Past the last observed time the
-    last value is carried forward."""
+def survival_at(curve: Sequence[SurvivalPoint], t: float) -> float | None:
+    """S(t) read off a KM curve (right-continuous step).
+
+    Past the last observed time S is unknown (nobody was watched that long), so this
+    returns None, unless S already reached 0, which it then stays at.
+    """
+    if not curve or (t > curve[-1].t and curve[-1].survival > 0):
+        return None
     survival = 1.0
     for p in curve:
         if p.t > t:
@@ -120,9 +130,12 @@ def arm_stats(arm_id: str, observations: Sequence[Observation]) -> ArmStats:
 
     The median is the first time the curve is at or below 0.5. Its CI comes from the
     pointwise band: the lower bound is where the lower band first reaches 0.5, the upper
-    bound where the upper band does (the way lifelines reports it). With no
-    observations, ``fooled_at_60s`` is 1.0 and ``n_calls`` is 0; show ``n_calls`` next
-    to every number.
+    bound where the upper band does (the way lifelines reports it).
+
+    No median means the arm was not caught by half the callers within
+    ``max_observed_s``. Rank and display it by that lower bound ("more than 0:05"), never
+    as an outright pass: a few dropped calls must not top the leaderboard. Show
+    ``n_calls`` next to every number.
     """
     curve = kaplan_meier(observations)
     n = len(observations)
@@ -137,6 +150,7 @@ def arm_stats(arm_id: str, observations: Sequence[Observation]) -> ArmStats:
         curve=curve,
         median_ci_low_s=_first_time_at_or_below_half(curve, [p.ci_low for p in curve]),
         median_ci_high_s=_first_time_at_or_below_half(curve, [p.ci_high for p in curve]),
+        max_observed_s=curve[-1].t if curve else None,
     )
 
 
@@ -155,8 +169,10 @@ def first_calls[T](
 ) -> list[T]:
     """Keep each caller's first call only (repeat callers learn the voices).
 
-    Items with no caller hash (web calls) cannot be linked to a caller, so each is kept.
-    Returned in start order.
+    Pass every call in which the caller actually talked to an arm, then filter (for
+    example to processed calls). Filtering first would make a caller's second game look
+    like their first. Items with no caller hash (web calls) cannot be linked to a caller,
+    so each is kept. Returned in start order.
     """
     first: dict[str, T] = {}
     anonymous: list[T] = []

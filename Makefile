@@ -1,4 +1,4 @@
-.PHONY: setup dev-api dev-web check check-api check-web fmt db-up db-down
+.PHONY: setup dev-api dev-web check check-api check-web fmt db-up db-down migrate
 
 setup:
 	cd backend && uv sync
@@ -20,6 +20,9 @@ check-web:
 
 fmt:
 	cd backend && uv run ruff check --fix . && uv run ruff format .
+
+migrate:
+	cd backend && uv run pk migrate
 
 db-up:
 	docker compose up -d db

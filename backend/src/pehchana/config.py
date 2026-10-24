@@ -56,6 +56,13 @@ class Settings(BaseSettings):
     # Which stereo channel of the Plivo session recording carries the caller (A-leg).
     # Verify on Day 1 with a test call and flip if needed.
     caller_channel: int = 0
+    # Hosts a recording URL may point at (exact match, https only). Recording URLs come
+    # from webhooks, so anything else is refused before it is stored. Plivo serves
+    # recordings from media.plivo.com; confirm on the first real call and add any other
+    # host it uses. Other telephony vendors need their own host listed here.
+    recording_host_allowlist: list[str] = Field(default_factory=lambda: ["media.plivo.com"])
+    # Largest recording we will download. 10 min of stereo 8 kHz 16-bit WAV is ~19 MB.
+    recording_max_bytes: int = 50_000_000
 
     # Deepgram (post-call, timestamped transcription of the recording)
     deepgram_api_key: str = ""
