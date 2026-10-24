@@ -89,7 +89,10 @@ class Call(Base):
     bolna_payload: Mapped[dict[str, object] | None] = mapped_column(JSON)
     processing_error: Mapped[str | None] = mapped_column(Text)
 
-    __table_args__ = (UniqueConstraint("provider", "provider_call_id"),)
+    # Named so create_all and migration 0002 give the constraint the same name.
+    __table_args__ = (
+        UniqueConstraint("provider", "provider_call_id", name="uq_calls_provider_call_id"),
+    )
 
     accusations: Mapped[list[Accusation]] = relationship(
         back_populates="call", cascade="all, delete-orphan", order_by="Accusation.at_s"

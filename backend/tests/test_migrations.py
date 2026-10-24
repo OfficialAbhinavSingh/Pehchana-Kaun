@@ -4,13 +4,14 @@ import pytest
 from alembic import command
 from alembic.autogenerate import compare_metadata
 from alembic.migration import MigrationContext
-from sqlalchemy import create_engine, inspect, text
+from sqlalchemy import UniqueConstraint, create_engine, inspect, text
 from sqlalchemy.exc import IntegrityError
 
 from pehchana import migrate, models  # noqa: F401  (register tables)
 from pehchana.db import Base
 
 NOW = "2026-10-23 10:00:00"
+PAIR = {"provider", "provider_call_id"}
 
 
 @pytest.fixture
@@ -50,6 +51,23 @@ def test_fresh_database_matches_the_models(engine):
     with engine.connect() as c:
         ctx = MigrationContext.configure(c, opts={"compare_type": True})
         assert compare_metadata(ctx, Base.metadata) == []
+
+
+def test_provider_call_id_constraint_has_the_same_name_in_models_and_migrations(engine):
+    # Unnamed in the model, create_all and Alembic would give it different names, and a
+    # later migration dropping it by name would break on one of them.
+    declared = {
+        c.name
+        for c in Base.metadata.tables["calls"].constraints
+        if isinstance(c, UniqueConstraint) and {col.name for col in c.columns} == PAIR
+    }
+    migrate.upgrade(engine)
+    migrated = {
+        uc["name"]
+        for uc in inspect(engine).get_unique_constraints("calls")
+        if set(uc["column_names"]) == PAIR
+    }
+    assert declared == migrated == {"uq_calls_provider_call_id"}
 
 
 def test_upgrade_keeps_existing_calls(engine):
