@@ -18,7 +18,7 @@ from typing import Literal
 
 from fastapi import APIRouter
 from pydantic import BaseModel
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session, selectinload
 
 from pehchana.api.deps import ArmLabelsDep, SessionDep, SettingsDep
@@ -60,7 +60,8 @@ class ArmStatsOut(BaseModel):
     median_turing_clock_s: float | None
     median_ci_low_s: float | None
     median_ci_high_s: float | None
-    fooled_at_60s: float
+    fooled_at_60s: float | None
+    max_observed_s: float | None
     curve: list[SurvivalPointOut]
     top_giveaways: list[GiveawayCount]
 
@@ -117,6 +118,7 @@ def _arm_out(
         median_ci_low_s=stats.median_ci_low_s,
         median_ci_high_s=stats.median_ci_high_s,
         fooled_at_60s=stats.fooled_at_60s,
+        max_observed_s=stats.max_observed_s,
         curve=[SurvivalPointOut(**vars(p)) for p in stats.curve],
         top_giveaways=[GiveawayCount(tag=t, count=n) for t, n in tags.most_common(TOP_GIVEAWAYS)],
     )
@@ -124,16 +126,24 @@ def _arm_out(
 
 
 def _order(arms: list[ArmStatsOut]) -> list[ArmStatsOut]:
-    """Human baseline first, then ranked AI arms from hardest to catch to easiest (a
-    "passed" arm with no median first), then AI arms with too few calls to rank."""
+    """Human baseline first, then ranked AI arms from hardest to catch to easiest, then
+    AI arms with too few calls to rank.
+
+    An arm that half the callers never caught has no median; it ranks by the longest
+    time it was watched, the most we know about its clock. Five calls dropped at 5 s
+    must not outrank an arm that held out for 50 s.
+    """
 
     def key(a: ArmStatsOut) -> tuple[int, float, float]:
         if a.kind == "human":
             return (0, 0.0, 0.0)
         if not a.ranked:
             return (2, 0.0, 0.0)
-        median = a.median_turing_clock_s
-        return (1, -(median if median is not None else float("inf")), -a.fooled_at_60s)
+        clock = a.median_turing_clock_s
+        if clock is None:
+            clock = a.max_observed_s or 0.0
+        fooled = a.fooled_at_60s if a.fooled_at_60s is not None else -1.0
+        return (1, -clock, -fooled)
 
     return sorted(arms, key=key)
 
@@ -152,9 +162,21 @@ def build_leaderboard(
         .options(selectinload(Call.accusations), selectinload(Call.giveaways))
     ).all()
     if first_call_only:
-        calls = first_calls(
-            calls, caller=lambda c: c.caller_hash, started_at=lambda c: c.started_at
-        )
+        # A caller's first game is their first call that reached an arm, scored or not
+        # (a later call is a repeat even if the earlier one failed in processing).
+        played = session.execute(
+            select(Call.id, Call.caller_hash, Call.started_at).where(
+                Call.source.in_(sources),
+                or_(Call.duration_s.is_not(None), Call.status == CallStatus.PROCESSED),
+            )
+        ).all()
+        firsts = {
+            row.id
+            for row in first_calls(
+                played, caller=lambda r: r.caller_hash, started_at=lambda r: r.started_at
+            )
+        }
+        calls = [c for c in calls if c.id in firsts]
 
     by_id = {label.id: label for label in labels}
     unknown = {c.arm_id for c in calls} - by_id.keys()

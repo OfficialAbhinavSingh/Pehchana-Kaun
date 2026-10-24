@@ -21,7 +21,8 @@ export type ArmStats = {
   median_turing_clock_s: number | null; // null = never fell to 50%: arm "passed"
   median_ci_low_s: number | null; // 95% CI for the median; null = bound not reached yet
   median_ci_high_s: number | null;
-  fooled_at_60s: number;
+  fooled_at_60s: number | null; // null when no call lasted 60 s (survival unknown)
+  max_observed_s: number | null; // longest call seen; with no median, the clock is longer than this
   curve: SurvivalPoint[];
   top_giveaways: { tag: string; count: number }[];
 };

@@ -220,6 +220,39 @@ def test_first_call_only_keeps_each_callers_first_game(board):
     assert arm(board(), "voice-a")["n_calls"] == 3
 
 
+def test_first_call_only_counts_earlier_games_that_were_not_scored(board):
+    # "a" talked to an arm before (that call failed in processing), so the processed
+    # call is their second game. "b"'s earlier call was never answered, so it is not a
+    # game, and the processed call is their first.
+    add_call("kalpa", duration=70, caller="a", minutes=0, status=CallStatus.FAILED)
+    add_call("kalpa", accused=5, caller="a", minutes=10)
+    add_call("kalpa", duration=None, caller="b", minutes=0, status=CallStatus.FAILED)
+    add_call("kalpa", accused=40, caller="b", minutes=10)
+    a = arm(board("?first_call_only=true"), "voice-a")
+    assert (a["n_calls"], a["median_turing_clock_s"]) == (1, 40)
+
+
+def test_short_calls_leave_survival_at_60s_unknown(board):
+    add_call("kalpa", duration=10)
+    add_call("kalpa", duration=12)
+    a = arm(board(), "voice-a")
+    assert a["fooled_at_60s"] is None
+    assert (a["median_turing_clock_s"], a["max_observed_s"]) == (None, 12)
+
+
+def test_an_arm_never_caught_is_ranked_by_how_long_it_was_watched(board):
+    # Five calls dropped at 5 s must not beat an arm that held out for 50 s.
+    for _ in range(5):
+        add_call("kalpa", duration=5)
+    add_call("cartesia", accused=40)
+    add_call("cartesia", accused=50)
+    assert [a["arm_id"] for a in board()["arms"]] == ["human", "voice-b", "voice-a"]
+    leaderboard.clear_cache()
+    for _ in range(5):
+        add_call("kalpa", duration=200)  # now it really held out past 50 s
+    assert [a["arm_id"] for a in board()["arms"]] == ["human", "voice-a", "voice-b"]
+
+
 def test_calls_for_arms_missing_from_the_config_are_left_out(board, caplog):
     add_call("retired", accused=10)
     assert board()["total_calls"] == 0
