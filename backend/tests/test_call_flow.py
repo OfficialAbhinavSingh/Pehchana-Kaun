@@ -212,6 +212,59 @@ def test_recording_for_a_failed_call_is_stored_but_not_processed(app_client, que
     assert queued == []
 
 
+def _routed_call(app_client, uuid: str) -> str:
+    post(app_client, "/telephony/plivo/answer", {"From": "+91", "CallUUID": uuid})
+    return only_call().id
+
+
+def test_dial_status_for_another_provider_call_id_is_refused(app_client):
+    cid = _routed_call(app_client, "mine")
+    q = f"/telephony/plivo/dial-status?call_id={cid}"
+    r = post(app_client, q, {"CallUUID": "someone-else", "DialBLegStatus": "hangup"})
+    assert r.status_code == 409
+    call = only_call()
+    assert (call.status, call.ended_at, call.duration_s) == (CallStatus.ROUTED, None, None)
+
+
+def test_dial_status_with_the_matching_call_id_is_accepted(app_client):
+    cid = _routed_call(app_client, "mine")
+    q = f"/telephony/plivo/dial-status?call_id={cid}"
+    form = {"CallUUID": "mine", "DialBLegStatus": "hangup", "DialBLegDuration": "9"}
+    assert post(app_client, q, form).status_code == 204
+    assert only_call().status == CallStatus.ENDED
+
+
+def test_recording_for_another_provider_call_id_is_not_stored_or_queued(app_client, queued):
+    cid = _answered_call(app_client, "mine")
+    q = f"/telephony/plivo/recording?call_id={cid}"
+    r = post(app_client, q, {"CallUUID": "someone-else", "RecordUrl": "https://r.test/a.mp3"})
+    assert r.status_code == 409
+    assert only_call().recording_url is None
+    assert queued == []
+
+
+def test_recording_callback_without_a_call_id_is_accepted(app_client, queued):
+    # Plivo documents no CallUUID on the <Record> callback; the signed call_id suffices.
+    cid = _answered_call(app_client, "mine")
+    q = f"/telephony/plivo/recording?call_id={cid}"
+    assert post(app_client, q, {"RecordUrl": "https://r.test/a.mp3"}).status_code == 204
+    assert queued == [cid]
+
+
+def test_callback_on_another_providers_route_is_refused(app_client):
+    # A call made through one vendor must not be updated by another vendor's route.
+    with db.get_sessionmaker()() as s:
+        call_flow.start_call(
+            session=s, provider=FakeProvider(), settings=SETTINGS, arms=[AI], form=FAKE_IN
+        )
+    cid = only_call().id
+    r = post(
+        app_client, f"/telephony/plivo/dial-status?call_id={cid}", {"DialBLegStatus": "hangup"}
+    )
+    assert r.status_code == 409
+    assert only_call().status == CallStatus.ROUTED
+
+
 def test_unanswered_dial_marks_failed_and_is_not_processed(app_client):
     post(app_client, "/telephony/plivo/answer", {"From": "+91", "CallUUID": "u2"})
     cid = only_call().id

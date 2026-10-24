@@ -46,6 +46,10 @@ def _respond(r: ProviderResponse) -> Response:
     return Response(content=r.body, media_type=r.media_type)
 
 
+def _mismatch(error: call_flow.CallMismatch) -> HTTPException:
+    return HTTPException(status.HTTP_409_CONFLICT, detail=str(error))
+
+
 def _process(call_id: str) -> None:
     try:
         pipeline.process_call(call_id)
@@ -80,9 +84,12 @@ def _provider_router(name: str) -> APIRouter:
         arm never picked up (that call must not count in the stats)."""
         provider = get_provider(name, settings)
         form = await _authenticated_form(request, provider, settings.public_base_url)
-        call_flow.finish_dial(
-            session=session, provider=provider, call=_get_call(session, call_id), form=form
-        )
+        try:
+            call_flow.finish_dial(
+                session=session, provider=provider, call=_get_call(session, call_id), form=form
+            )
+        except call_flow.CallMismatch as e:
+            raise _mismatch(e) from e
         return Response(status_code=status.HTTP_204_NO_CONTENT)
 
     @router.post("/recording")
@@ -97,7 +104,13 @@ def _provider_router(name: str) -> APIRouter:
         provider = get_provider(name, settings)
         form = await _authenticated_form(request, provider, settings.public_base_url)
         call = _get_call(session, call_id)
-        if call_flow.attach_recording(session=session, provider=provider, call=call, form=form):
+        try:
+            queue = call_flow.attach_recording(
+                session=session, provider=provider, call=call, form=form
+            )
+        except call_flow.CallMismatch as e:
+            raise _mismatch(e) from e
+        if queue:
             background.add_task(_process, call.id)
         return Response(status_code=status.HTTP_204_NO_CONTENT)
 

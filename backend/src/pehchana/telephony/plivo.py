@@ -142,4 +142,6 @@ class PlivoProvider:
             url=url,
             caller_channel=self._caller_channel,
             duration_s=_float(form.get("RecordingDuration")),
+            # Plivo documents no CallUUID on the <Record> callback; use it if it is sent.
+            provider_call_id=form.get("CallUUID") or None,
         )

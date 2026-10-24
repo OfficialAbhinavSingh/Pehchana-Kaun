@@ -103,6 +103,12 @@ vendor with no core changes.
 - Every webhook handler verifies the vendor signature first and answers 403 on failure.
   `PlivoProvider.verify` fails closed on a missing token, header or nonce, and on any
   error from the SDK.
+- A signed callback must also belong to the call it names. `dial-status` and `recording`
+  are refused with 409 when the call was made through another provider, or when the
+  callback carries a provider call id that differs from the stored one. Plivo's
+  `<Record>` callback documents no `CallUUID` (only `RecordUrl`, `RecordingID` and
+  durations), so for recordings the id is checked only if present; otherwise the
+  `call_id` in the signed callback URL is the link.
 - `/admin/*` requires `Authorization: Bearer <ADMIN_TOKEN>`, compared in constant time.
 - No raw caller numbers in the database, logs or tests.
 

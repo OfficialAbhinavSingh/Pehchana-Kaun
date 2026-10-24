@@ -141,13 +141,33 @@ def _answer(
     )
 
 
+class CallMismatch(Exception):
+    """A callback is validly signed but does not belong to the call it names."""
+
+
+def _check_belongs(call: Call, provider: TelephonyProvider, provider_call_id: str | None) -> None:
+    """Refuse to touch ``call`` for a callback from another vendor or another call.
+
+    The signature proves the vendor sent the request, not that ``?call_id=`` is the call
+    it is about. ``provider_call_id`` is None when the vendor's callback has no id; then
+    the signed ``call_id`` in the URL is all there is to go on.
+    """
+    if call.provider != provider.name:
+        log.warning("call %s belongs to %s, not %s", call.id, call.provider, provider.name)
+        raise CallMismatch("callback arrived on another provider's route")
+    if provider_call_id is not None and provider_call_id != call.provider_call_id:
+        log.warning("call %s: callback carries a different %s call id", call.id, provider.name)
+        raise CallMismatch("callback names a different provider call id")
+
+
 def finish_dial(
     *, session: Session, provider: TelephonyProvider, call: Call, form: Mapping[str, str]
 ) -> None:
     """Dial ended: record timings, or mark FAILED if the arm never picked up."""
+    result = provider.parse_dial_status(form)
+    _check_belongs(call, provider, result.provider_call_id)
     if call.status not in _OPEN:
         return  # late or duplicate callback must not rewrite a finished call
-    result = provider.parse_dial_status(form)
     now = utcnow()
     call.ended_at = now
     if not result.answered:
@@ -170,6 +190,7 @@ def attach_recording(
     exactly one sees ``True`` and queues the (costly, Deepgram + LLM) pipeline.
     """
     event = provider.parse_recording(form)
+    _check_belongs(call, provider, event.provider_call_id)
     claimed = session.scalars(
         update(Call)
         .where(Call.id == call.id, Call.recording_url.is_(None))
