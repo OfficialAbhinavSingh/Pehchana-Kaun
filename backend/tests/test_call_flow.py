@@ -153,6 +153,65 @@ def test_retry_after_the_call_ended_gets_busy_and_a_log_line(app_client, caplog)
     assert "+919876543210" not in caplog.text
 
 
+@pytest.fixture
+def queued(monkeypatch):
+    """Call ids the pipeline was asked to process."""
+    ids: list[str] = []
+    monkeypatch.setattr("pehchana.pipeline.process_call", ids.append)
+    return ids
+
+
+def _answered_call(app_client, uuid: str) -> str:
+    post(app_client, "/telephony/plivo/answer", {"From": "+91", "CallUUID": uuid})
+    cid = only_call().id
+    post(app_client, f"/telephony/plivo/dial-status?call_id={cid}", {"DialBLegStatus": "hangup"})
+    return cid
+
+
+def test_recording_retry_queues_the_pipeline_once(app_client, queued):
+    cid = _answered_call(app_client, "rec-1")
+    q = f"/telephony/plivo/recording?call_id={cid}"
+    for _ in range(3):
+        assert post(app_client, q, {"RecordUrl": "https://r.test/a.mp3"}).status_code == 204
+    assert queued == [cid]
+    assert only_call().recording_url == "https://r.test/a.mp3"
+
+
+def test_a_different_second_recording_is_ignored(app_client, queued, caplog):
+    cid = _answered_call(app_client, "rec-2")
+    q = f"/telephony/plivo/recording?call_id={cid}"
+    post(app_client, q, {"RecordUrl": "https://r.test/first.mp3"})
+    with caplog.at_level("WARNING", logger="pehchana.telephony.call_flow"):
+        post(app_client, q, {"RecordUrl": "https://r.test/second.mp3"})
+    assert only_call().recording_url == "https://r.test/first.mp3"
+    assert queued == [cid]
+    assert "ignoring a different one" in caplog.text
+    assert "second.mp3" not in caplog.text  # recording URLs are bearer secrets: never log them
+
+
+def test_concurrent_recording_callbacks_have_one_winner(client):
+    # Both workers loaded the call before either wrote: the second UPDATE must lose.
+    fake = FakeProvider()
+    with db.get_sessionmaker()() as s:
+        call_flow.start_call(session=s, provider=fake, settings=SETTINGS, arms=[AI], form=FAKE_IN)
+    with db.get_sessionmaker()() as a, db.get_sessionmaker()() as b:
+        call_a, call_b = a.scalars(select(Call)).one(), b.scalars(select(Call)).one()
+        assert call_flow.attach_recording(session=a, provider=fake, call=call_a, form={"url": "u1"})
+        assert not call_flow.attach_recording(
+            session=b, provider=fake, call=call_b, form={"url": "u2"}
+        )
+        assert call_b.recording_url == "u1"  # refreshed to what the winner stored
+
+
+def test_recording_for_a_failed_call_is_stored_but_not_processed(app_client, queued):
+    post(app_client, "/telephony/plivo/answer", {"From": "+91", "CallUUID": "rec-3"})
+    cid = only_call().id
+    post(app_client, f"/telephony/plivo/dial-status?call_id={cid}", {"DialBLegStatus": "no-answer"})
+    post(app_client, f"/telephony/plivo/recording?call_id={cid}", {"RecordUrl": "https://r.test/x"})
+    assert only_call().recording_url == "https://r.test/x"
+    assert queued == []
+
+
 def test_unanswered_dial_marks_failed_and_is_not_processed(app_client):
     post(app_client, "/telephony/plivo/answer", {"From": "+91", "CallUUID": "u2"})
     cid = only_call().id
@@ -212,6 +271,9 @@ class FakeProvider:
 
     def parse_recording(self, form):
         return RecordingEvent(form["url"], caller_channel=1)
+
+
+FAKE_IN = {"from": "+91", "id": "f9"}
 
 
 def test_core_flow_is_vendor_agnostic(client):

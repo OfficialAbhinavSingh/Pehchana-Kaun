@@ -11,7 +11,7 @@ import logging
 from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -163,9 +163,23 @@ def finish_dial(
 def attach_recording(
     *, session: Session, provider: TelephonyProvider, call: Call, form: Mapping[str, str]
 ) -> bool:
-    """Store the recording. Returns True if the call should now be processed."""
+    """Store the recording once. Returns True if the call should now be processed.
+
+    Vendors repeat callbacks until they see a 2xx, and may send two at once. The first
+    recording wins: the claim is one conditional UPDATE, so of two concurrent callbacks
+    exactly one sees ``True`` and queues the (costly, Deepgram + LLM) pipeline.
+    """
     event = provider.parse_recording(form)
-    call.recording_url = event.url
-    call.recording_caller_channel = event.caller_channel
+    claimed = session.scalars(
+        update(Call)
+        .where(Call.id == call.id, Call.recording_url.is_(None))
+        .values(recording_url=event.url, recording_caller_channel=event.caller_channel)
+        .returning(Call.id)
+    ).first()
     session.commit()
-    return call.status != CallStatus.FAILED
+    session.refresh(call)  # the UPDATE bypassed the ORM object
+    if claimed is None:
+        if call.recording_url != event.url:
+            log.warning("call %s already has a recording; ignoring a different one", call.id)
+        return False
+    return call.status not in (CallStatus.FAILED, CallStatus.PROCESSED)
