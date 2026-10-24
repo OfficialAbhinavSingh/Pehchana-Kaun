@@ -85,7 +85,7 @@ vendor with no core changes.
 
 | Decision | Why | Cost |
 |---|---|---|
-| Vendor-neutral DB columns `provider`, `provider_call_id` (unique together) replace `plivo_call_uuid` | Renaming after real calls exist needs a migration; there is no Alembic history yet. | Shared contract change, flagged in the PR. |
+| Vendor-neutral DB columns `provider`, `provider_call_id` (unique together) replace `plivo_call_uuid` | Renaming after real calls exist needs a migration, so Alembic history starts with the schema before this change (`0001`) and `0002` renames in place, keeping rows. | Shared contract change, flagged in the PR. Downgrade drops ids of non-Plivo calls. |
 | `Call.recording_caller_channel` | The caller's channel is a property of the vendor's recording, not global config. | New column read by WS2. |
 | Routes generated from the registry, not a `{provider}` path param | Keeps `/telephony/plivo/*` exactly as the contract test and the Plivo dashboard expect, and still needs no route edits for a new vendor. | Routes are built at import time, so a provider must be registered before the app starts. |
 | Small registry (`dict`), no plugin discovery | Switching vendors is likely; plugin machinery is not needed for 2 or 3 vendors. | Adding a vendor touches `registry.py` (one line). |
