@@ -149,3 +149,9 @@ def test_parse_recording_carries_caller_channel(plivo):
 def test_parse_recording_without_url_raises(plivo):
     with pytest.raises(ValueError, match="RecordUrl"):
         plivo.parse_recording({})
+
+
+def test_parse_recording_takes_the_call_id_only_when_the_callback_has_one(plivo):
+    url = {"RecordUrl": "https://media.plivo.com/x.mp3"}
+    assert plivo.parse_recording(url).provider_call_id is None
+    assert plivo.parse_recording({**url, "CallUUID": "abc"}).provider_call_id == "abc"

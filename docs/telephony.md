@@ -45,14 +45,18 @@ field name.
 ### Request lifecycle
 
 1. `POST /telephony/<provider>/answer`: verify, parse, hash the caller number, pick an
-   arm, insert a `Call` (`status=routed`), return the provider's answer response. If no
+   arm, insert a `Call` (`status=routed`), return the provider's answer response. A
+   retry of the same call id (even two at once) is answered from the existing row, with
+   the same arm. If no
    arm is eligible, return the busy response and insert nothing.
 2. `POST .../dial-status?call_id=`: mark `ended` with duration, or `failed` if the arm
    never picked up (failed calls never count in stats). A late or duplicate callback on
    a finished call is ignored.
-3. `POST .../recording?call_id=`: store `recording_url` and `recording_caller_channel`,
-   then queue `pipeline.process_call` unless the call failed. If the pipeline is not
-   implemented yet, log a warning and still return 204 so the vendor does not retry.
+3. `POST .../recording?call_id=`: store `recording_url` and `recording_caller_channel`
+   once (the first callback wins; retries and duplicates are no-ops), then queue
+   `pipeline.process_call` unless the call failed or is already processed. If the
+   pipeline is not implemented yet, log a warning and still return 204 so the vendor
+   does not retry.
 
 ## Adding a provider
 
@@ -80,12 +84,19 @@ vendor with no core changes.
 - **Recording downloads** may need vendor auth. `RecordingEvent.download_headers`
   carries them. They are not persisted, so the pipeline must ask the provider again for
   a re-run (open item for WS2).
+- **Recording URLs are untrusted input.** The callback is signed, but a URL is only
+  stored if it is `https`, has no credentials or odd port, and its host is in
+  `RECORDING_HOST_ALLOWLIST` (exact match; default `media.plivo.com`). Anything else gets
+  400 and nothing is stored. A new vendor must have its host added there. The allowlist
+  is unconfirmed: Plivo's docs give no recording host, only `media.plivo.com` in an
+  example, so check it on the Day-1 call (a wrong list shows up as 400s on `/recording`
+  and a log line naming the refused host).
 
 ## Decisions
 
 | Decision | Why | Cost |
 |---|---|---|
-| Vendor-neutral DB columns `provider`, `provider_call_id` (unique together) replace `plivo_call_uuid` | Renaming after real calls exist needs a migration; there is no Alembic history yet. | Shared contract change, flagged in the PR. |
+| Vendor-neutral DB columns `provider`, `provider_call_id` (unique together) replace `plivo_call_uuid` | Renaming after real calls exist needs a migration, so Alembic history starts with the schema before this change (`0001`) and `0002` renames in place, keeping rows. | Shared contract change, flagged in the PR. Downgrade drops ids of non-Plivo calls. |
 | `Call.recording_caller_channel` | The caller's channel is a property of the vendor's recording, not global config. | New column read by WS2. |
 | Routes generated from the registry, not a `{provider}` path param | Keeps `/telephony/plivo/*` exactly as the contract test and the Plivo dashboard expect, and still needs no route edits for a new vendor. | Routes are built at import time, so a provider must be registered before the app starts. |
 | Small registry (`dict`), no plugin discovery | Switching vendors is likely; plugin machinery is not needed for 2 or 3 vendors. | Adding a vendor touches `registry.py` (one line). |
@@ -103,6 +114,12 @@ vendor with no core changes.
 - Every webhook handler verifies the vendor signature first and answers 403 on failure.
   `PlivoProvider.verify` fails closed on a missing token, header or nonce, and on any
   error from the SDK.
+- A signed callback must also belong to the call it names. `dial-status` and `recording`
+  are refused with 409 when the call was made through another provider, or when the
+  callback carries a provider call id that differs from the stored one. Plivo's
+  `<Record>` callback documents no `CallUUID` (only `RecordUrl`, `RecordingID` and
+  durations), so for recordings the id is checked only if present; otherwise the
+  `call_id` in the signed callback URL is the link.
 - `/admin/*` requires `Authorization: Bearer <ADMIN_TOKEN>`, compared in constant time.
 - No raw caller numbers in the database, logs or tests.
 
