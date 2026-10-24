@@ -78,6 +78,8 @@ class Call(Base):
     ended_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     duration_s: Mapped[float | None] = mapped_column(Float)
 
+    # A bearer secret: whoever holds it can play the call. Validated against
+    # RECORDING_HOST_ALLOWLIST before it is stored; never log it or return it from an API.
     recording_url: Mapped[str | None] = mapped_column(Text)
     # 0-based channel of the caller in the recording; set by the telephony provider.
     recording_caller_channel: Mapped[int | None] = mapped_column(Integer)

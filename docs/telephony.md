@@ -45,14 +45,18 @@ field name.
 ### Request lifecycle
 
 1. `POST /telephony/<provider>/answer`: verify, parse, hash the caller number, pick an
-   arm, insert a `Call` (`status=routed`), return the provider's answer response. If no
+   arm, insert a `Call` (`status=routed`), return the provider's answer response. A
+   retry of the same call id (even two at once) is answered from the existing row, with
+   the same arm. If no
    arm is eligible, return the busy response and insert nothing.
 2. `POST .../dial-status?call_id=`: mark `ended` with duration, or `failed` if the arm
    never picked up (failed calls never count in stats). A late or duplicate callback on
    a finished call is ignored.
-3. `POST .../recording?call_id=`: store `recording_url` and `recording_caller_channel`,
-   then queue `pipeline.process_call` unless the call failed. If the pipeline is not
-   implemented yet, log a warning and still return 204 so the vendor does not retry.
+3. `POST .../recording?call_id=`: store `recording_url` and `recording_caller_channel`
+   once (the first callback wins; retries and duplicates are no-ops), then queue
+   `pipeline.process_call` unless the call failed or is already processed. If the
+   pipeline is not implemented yet, log a warning and still return 204 so the vendor
+   does not retry.
 
 ## Adding a provider
 
@@ -80,6 +84,13 @@ vendor with no core changes.
 - **Recording downloads** may need vendor auth. `RecordingEvent.download_headers`
   carries them. They are not persisted, so the pipeline must ask the provider again for
   a re-run (open item for WS2).
+- **Recording URLs are untrusted input.** The callback is signed, but a URL is only
+  stored if it is `https`, has no credentials or odd port, and its host is in
+  `RECORDING_HOST_ALLOWLIST` (exact match; default `media.plivo.com`). Anything else gets
+  400 and nothing is stored. A new vendor must have its host added there. The allowlist
+  is unconfirmed: Plivo's docs give no recording host, only `media.plivo.com` in an
+  example, so check it on the Day-1 call (a wrong list shows up as 400s on `/recording`
+  and a log line naming the refused host).
 
 ## Decisions
 

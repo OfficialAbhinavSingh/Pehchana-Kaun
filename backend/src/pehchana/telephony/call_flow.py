@@ -19,6 +19,7 @@ from pehchana.arms import Arm, NoArmAvailable, choose_arm, eligible_arms
 from pehchana.config import Settings
 from pehchana.models import Call, CallStatus, Channel, ShiftOverride, Source, utcnow
 from pehchana.telephony.base import CallPlan, ProviderResponse, TelephonyProvider
+from pehchana.telephony.recordings import InvalidRecording, validate_recording_url
 
 log = logging.getLogger(__name__)
 
@@ -181,16 +182,30 @@ def finish_dial(
 
 
 def attach_recording(
-    *, session: Session, provider: TelephonyProvider, call: Call, form: Mapping[str, str]
+    *,
+    session: Session,
+    provider: TelephonyProvider,
+    settings: Settings,
+    call: Call,
+    form: Mapping[str, str],
 ) -> bool:
     """Store the recording once. Returns True if the call should now be processed.
 
     Vendors repeat callbacks until they see a 2xx, and may send two at once. The first
     recording wins: the claim is one conditional UPDATE, so of two concurrent callbacks
     exactly one sees ``True`` and queues the (costly, Deepgram + LLM) pipeline.
+
+    Raises ``InvalidRecording`` for a missing, malformed or untrusted URL (nothing is
+    stored) and ``CallMismatch`` for a callback that is not about this call.
     """
-    event = provider.parse_recording(form)
+    try:
+        event = provider.parse_recording(form)
+    except InvalidRecording:
+        raise
+    except ValueError as e:  # a provider's "this callback has no recording"
+        raise InvalidRecording(str(e)) from e
     _check_belongs(call, provider, event.provider_call_id)
+    validate_recording_url(event.url, settings.recording_host_allowlist)
     claimed = session.scalars(
         update(Call)
         .where(Call.id == call.id, Call.recording_url.is_(None))

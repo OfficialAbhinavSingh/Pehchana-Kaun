@@ -74,9 +74,9 @@ def test_full_happy_path(app_client):
     assert call.answered_at is not None
 
     q = f"/telephony/plivo/recording?call_id={call.id}"
-    r = post(app_client, q, {"RecordUrl": "https://r.test/a.mp3"})
+    r = post(app_client, q, {"RecordUrl": "https://media.plivo.com/a.mp3"})
     assert r.status_code == 204
-    assert only_call().recording_url == "https://r.test/a.mp3"
+    assert only_call().recording_url == "https://media.plivo.com/a.mp3"
 
 
 def test_answer_retry_is_idempotent(app_client):
@@ -172,18 +172,20 @@ def test_recording_retry_queues_the_pipeline_once(app_client, queued):
     cid = _answered_call(app_client, "rec-1")
     q = f"/telephony/plivo/recording?call_id={cid}"
     for _ in range(3):
-        assert post(app_client, q, {"RecordUrl": "https://r.test/a.mp3"}).status_code == 204
+        assert (
+            post(app_client, q, {"RecordUrl": "https://media.plivo.com/a.mp3"}).status_code == 204
+        )
     assert queued == [cid]
-    assert only_call().recording_url == "https://r.test/a.mp3"
+    assert only_call().recording_url == "https://media.plivo.com/a.mp3"
 
 
 def test_a_different_second_recording_is_ignored(app_client, queued, caplog):
     cid = _answered_call(app_client, "rec-2")
     q = f"/telephony/plivo/recording?call_id={cid}"
-    post(app_client, q, {"RecordUrl": "https://r.test/first.mp3"})
+    post(app_client, q, {"RecordUrl": "https://media.plivo.com/first.mp3"})
     with caplog.at_level("WARNING", logger="pehchana.telephony.call_flow"):
-        post(app_client, q, {"RecordUrl": "https://r.test/second.mp3"})
-    assert only_call().recording_url == "https://r.test/first.mp3"
+        post(app_client, q, {"RecordUrl": "https://media.plivo.com/second.mp3"})
+    assert only_call().recording_url == "https://media.plivo.com/first.mp3"
     assert queued == [cid]
     assert "ignoring a different one" in caplog.text
     assert "second.mp3" not in caplog.text  # recording URLs are bearer secrets: never log them
@@ -196,19 +198,53 @@ def test_concurrent_recording_callbacks_have_one_winner(client):
         call_flow.start_call(session=s, provider=fake, settings=SETTINGS, arms=[AI], form=FAKE_IN)
     with db.get_sessionmaker()() as a, db.get_sessionmaker()() as b:
         call_a, call_b = a.scalars(select(Call)).one(), b.scalars(select(Call)).one()
-        assert call_flow.attach_recording(session=a, provider=fake, call=call_a, form={"url": "u1"})
-        assert not call_flow.attach_recording(
-            session=b, provider=fake, call=call_b, form={"url": "u2"}
+        assert call_flow.attach_recording(
+            session=a, provider=fake, settings=SETTINGS, call=call_a, form={"url": GOOD + "1"}
         )
-        assert call_b.recording_url == "u1"  # refreshed to what the winner stored
+        assert not call_flow.attach_recording(
+            session=b, provider=fake, settings=SETTINGS, call=call_b, form={"url": GOOD + "2"}
+        )
+        assert call_b.recording_url == GOOD + "1"  # refreshed to what the winner stored
+
+
+@pytest.mark.parametrize(
+    "form",
+    [
+        {"RecordUrl": "http://media.plivo.com/a.mp3"},
+        {"RecordUrl": "https://evil.example/a.mp3"},
+        {"RecordUrl": "https://169.254.169.254/latest/meta-data/"},
+        {"RecordUrl": "file:///etc/passwd"},
+        {},  # no RecordUrl at all
+    ],
+)
+def test_untrusted_or_missing_recording_url_is_refused(app_client, queued, form):
+    cid = _answered_call(app_client, "bad-url")
+    r = post(app_client, f"/telephony/plivo/recording?call_id={cid}", form)
+    assert r.status_code == 400
+    assert only_call().recording_url is None
+    assert queued == []
+    assert "evil.example" not in r.text
+
+
+def test_a_refused_recording_does_not_block_a_later_valid_one(app_client, queued):
+    cid = _answered_call(app_client, "bad-then-good")
+    q = f"/telephony/plivo/recording?call_id={cid}"
+    assert post(app_client, q, {"RecordUrl": "https://evil.example/a.mp3"}).status_code == 400
+    assert post(app_client, q, {"RecordUrl": GOOD + "a.mp3"}).status_code == 204
+    assert only_call().recording_url == GOOD + "a.mp3"
+    assert queued == [cid]
 
 
 def test_recording_for_a_failed_call_is_stored_but_not_processed(app_client, queued):
     post(app_client, "/telephony/plivo/answer", {"From": "+91", "CallUUID": "rec-3"})
     cid = only_call().id
     post(app_client, f"/telephony/plivo/dial-status?call_id={cid}", {"DialBLegStatus": "no-answer"})
-    post(app_client, f"/telephony/plivo/recording?call_id={cid}", {"RecordUrl": "https://r.test/x"})
-    assert only_call().recording_url == "https://r.test/x"
+    post(
+        app_client,
+        f"/telephony/plivo/recording?call_id={cid}",
+        {"RecordUrl": "https://media.plivo.com/x"},
+    )
+    assert only_call().recording_url == "https://media.plivo.com/x"
     assert queued == []
 
 
@@ -237,7 +273,9 @@ def test_dial_status_with_the_matching_call_id_is_accepted(app_client):
 def test_recording_for_another_provider_call_id_is_not_stored_or_queued(app_client, queued):
     cid = _answered_call(app_client, "mine")
     q = f"/telephony/plivo/recording?call_id={cid}"
-    r = post(app_client, q, {"CallUUID": "someone-else", "RecordUrl": "https://r.test/a.mp3"})
+    r = post(
+        app_client, q, {"CallUUID": "someone-else", "RecordUrl": "https://media.plivo.com/a.mp3"}
+    )
     assert r.status_code == 409
     assert only_call().recording_url is None
     assert queued == []
@@ -247,7 +285,7 @@ def test_recording_callback_without_a_call_id_is_accepted(app_client, queued):
     # Plivo documents no CallUUID on the <Record> callback; the signed call_id suffices.
     cid = _answered_call(app_client, "mine")
     q = f"/telephony/plivo/recording?call_id={cid}"
-    assert post(app_client, q, {"RecordUrl": "https://r.test/a.mp3"}).status_code == 204
+    assert post(app_client, q, {"RecordUrl": "https://media.plivo.com/a.mp3"}).status_code == 204
     assert queued == [cid]
 
 
@@ -284,7 +322,11 @@ def test_no_arm_available_returns_busy(app_client):
 
 
 def test_unknown_call_id_is_404(app_client):
-    r = post(app_client, "/telephony/plivo/recording?call_id=nope", {"RecordUrl": "https://x"})
+    r = post(
+        app_client,
+        "/telephony/plivo/recording?call_id=nope",
+        {"RecordUrl": "https://media.plivo.com/x"},
+    )
     assert r.status_code == 404
 
 
@@ -327,6 +369,7 @@ class FakeProvider:
 
 
 FAKE_IN = {"from": "+91", "id": "f9"}
+GOOD = "https://media.plivo.com/rec/"
 
 
 def test_core_flow_is_vendor_agnostic(client):
@@ -340,7 +383,9 @@ def test_core_flow_is_vendor_agnostic(client):
         assert (call.provider, call.provider_call_id) == ("fake", "f1")
         call_flow.finish_dial(session=s, provider=fake, call=call, form={"ok": "1"})
         assert call.status == CallStatus.ENDED
-        assert call_flow.attach_recording(session=s, provider=fake, call=call, form={"url": "u"})
+        assert call_flow.attach_recording(
+            session=s, provider=fake, settings=SETTINGS, call=call, form={"url": GOOD}
+        )
         assert call.recording_caller_channel == 1
 
 

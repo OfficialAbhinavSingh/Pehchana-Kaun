@@ -15,6 +15,7 @@ from pehchana.api.deps import ArmsDep, SessionDep, SettingsDep
 from pehchana.models import Call
 from pehchana.telephony import call_flow
 from pehchana.telephony.base import ProviderResponse, TelephonyProvider, WebhookRequest
+from pehchana.telephony.recordings import InvalidRecording
 from pehchana.telephony.registry import get_provider, provider_names
 
 log = logging.getLogger(__name__)
@@ -106,10 +107,12 @@ def _provider_router(name: str) -> APIRouter:
         call = _get_call(session, call_id)
         try:
             queue = call_flow.attach_recording(
-                session=session, provider=provider, call=call, form=form
+                session=session, provider=provider, settings=settings, call=call, form=form
             )
         except call_flow.CallMismatch as e:
             raise _mismatch(e) from e
+        except InvalidRecording as e:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
         if queue:
             background.add_task(_process, call.id)
         return Response(status_code=status.HTTP_204_NO_CONTENT)
