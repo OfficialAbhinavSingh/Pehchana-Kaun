@@ -7,16 +7,20 @@ All routing and bookkeeping for one game lives here and talks only to the
 from __future__ import annotations
 
 import hashlib
+import logging
 from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
 
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from pehchana.arms import Arm, NoArmAvailable, choose_arm, eligible_arms
 from pehchana.config import Settings
 from pehchana.models import Call, CallStatus, Channel, ShiftOverride, Source, utcnow
 from pehchana.telephony.base import CallPlan, ProviderResponse, TelephonyProvider
+
+log = logging.getLogger(__name__)
 
 # How far back "recent calls" looks when balancing arms.
 BALANCE_WINDOW = timedelta(hours=6)
@@ -61,17 +65,9 @@ def start_call(
 
     # Vendors retry the answer URL on slow responses. Same call id: replay the same arm
     # instead of inserting a duplicate (unique constraint) or rerouting the caller.
-    existing = session.scalars(
-        select(Call).where(
-            Call.provider == provider.name,
-            Call.provider_call_id == incoming.provider_call_id,
-        )
-    ).first()
+    existing = _find_call(session, provider.name, incoming.provider_call_id)
     if existing is not None:
-        arm = next((a for a in arms if a.id == existing.arm_id), None)
-        if arm is None or existing.status not in _OPEN:
-            return provider.busy_response()
-        return _answer(provider, settings, existing, arm)
+        return _replay(provider, settings, arms, existing)
 
     candidates = eligible_arms(
         arms, channel="phone", now=now, humans_override=_humans_override(session, now)
@@ -91,7 +87,42 @@ def start_call(
         started_at=now,
     )
     session.add(call)
-    session.commit()
+    try:
+        session.commit()
+    except IntegrityError:
+        # Two copies of the same webhook passed the lookup above together; the other one
+        # inserted first. Answer this one from the winner's row so both callers' legs agree.
+        session.rollback()
+        existing = _find_call(session, provider.name, incoming.provider_call_id)
+        if existing is None:
+            raise  # some other constraint failed: not a retry, so do not hide it
+        return _replay(provider, settings, arms, existing)
+    return _answer(provider, settings, call, arm)
+
+
+def _find_call(session: Session, provider_name: str, provider_call_id: str) -> Call | None:
+    return session.scalars(
+        select(Call).where(
+            Call.provider == provider_name, Call.provider_call_id == provider_call_id
+        )
+    ).first()
+
+
+def _replay(
+    provider: TelephonyProvider, settings: Settings, arms: Sequence[Arm], call: Call
+) -> ProviderResponse:
+    """Answer a retried webhook again with the arm already chosen for this call."""
+    arm = next((a for a in arms if a.id == call.arm_id), None)
+    if arm is None or call.status not in _OPEN:
+        # Retry of a call that already finished, or whose arm left the config.
+        log.warning(
+            "answer retry for call %s not replayed: status=%s arm=%s%s",
+            call.id,
+            call.status.value,
+            call.arm_id,
+            "" if arm else " (no longer configured)",
+        )
+        return provider.busy_response()
     return _answer(provider, settings, call, arm)
 
 

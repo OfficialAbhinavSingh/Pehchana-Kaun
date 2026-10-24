@@ -5,6 +5,7 @@ from datetime import UTC, datetime, timedelta
 import pytest
 from plivo.utils.signature_v3 import construct_post_url, get_signature_v3
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 
 from pehchana import db
 from pehchana.api.deps import get_arms
@@ -87,6 +88,69 @@ def test_answer_retry_is_idempotent(app_client):
     assert first.status_code == second.status_code == 200
     assert only_call().provider_call_id == "dup-1"  # .one() fails on a duplicate row
     assert "call_id=" + only_call().id in second.text
+    assert second.text == first.text  # same arm, same dial numbers, same callbacks
+
+
+def test_answer_race_replays_the_winning_row(client, monkeypatch):
+    # Two copies of one webhook both miss the lookup; the loser's insert hits the unique
+    # constraint. It must answer from the winner's row, not 500 or pick another arm.
+    form = {"from": "+91", "id": "race-1"}
+    fake = FakeProvider()
+    with db.get_sessionmaker()() as s:
+        winner = call_flow.start_call(
+            session=s, provider=fake, settings=SETTINGS, arms=[AI], form=form
+        )
+    real_find = call_flow._find_call
+    lookups = []
+
+    def blind_first_lookup(*args):
+        lookups.append(1)
+        return None if len(lookups) == 1 else real_find(*args)
+
+    monkeypatch.setattr(call_flow, "_find_call", blind_first_lookup)
+    with db.get_sessionmaker()() as s:
+        loser = call_flow.start_call(
+            session=s, provider=fake, settings=SETTINGS, arms=[AI], form=form
+        )
+    assert len(lookups) == 2  # the race path ran
+    assert loser.body == winner.body
+    assert only_call().provider_call_id == "race-1"
+
+
+def test_integrity_error_that_is_not_a_retry_is_not_swallowed(client, monkeypatch):
+    # Same unique-constraint failure, but no row with this call id exists afterwards.
+    def always_miss(*args):
+        return None
+
+    with db.get_sessionmaker()() as s:
+        call_flow.start_call(
+            session=s,
+            provider=FakeProvider(),
+            settings=SETTINGS,
+            arms=[AI],
+            form={"from": "x", "id": "k"},
+        )
+        monkeypatch.setattr(call_flow, "_find_call", always_miss)
+        with pytest.raises(IntegrityError):
+            call_flow.start_call(
+                session=s,
+                provider=FakeProvider(),
+                settings=SETTINGS,
+                arms=[AI],
+                form={"from": "x", "id": "k"},
+            )
+
+
+def test_retry_after_the_call_ended_gets_busy_and_a_log_line(app_client, caplog):
+    form = {"From": "+919876543210", "CallUUID": "late-1"}
+    post(app_client, "/telephony/plivo/answer", form)
+    cid = only_call().id
+    post(app_client, f"/telephony/plivo/dial-status?call_id={cid}", {"DialBLegStatus": "hangup"})
+    with caplog.at_level("WARNING", logger="pehchana.telephony.call_flow"):
+        r = post(app_client, "/telephony/plivo/answer", form)
+    assert "<Hangup" in r.text
+    assert f"answer retry for call {cid} not replayed" in caplog.text
+    assert "+919876543210" not in caplog.text
 
 
 def test_unanswered_dial_marks_failed_and_is_not_processed(app_client):
