@@ -80,6 +80,12 @@ class Settings(BaseSettings):
     # Seconds one computed leaderboard is served before it is rebuilt (0 = no cache).
     leaderboard_cache_s: float = 30.0
 
+    # Browser game (POST /webcall/session). Every session is a paid Bolna call, so cap
+    # sessions per client IP and in total.
+    webcall_per_ip: int = 3
+    webcall_per_ip_window_s: float = 600.0
+    webcall_per_hour: int = 120
+
 
 @lru_cache
 def get_settings() -> Settings:

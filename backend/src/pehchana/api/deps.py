@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from pehchana.arms import Arm, ArmLabel, load_arm_labels, load_arms
 from pehchana.config import Settings, arm_env, get_settings
 from pehchana.db import get_session
+from pehchana.integrations.bolna import BolnaClient
 
 SessionDep = Annotated[Session, Depends(get_session)]
 SettingsDep = Annotated[Settings, Depends(get_settings)]
@@ -25,3 +26,10 @@ def get_arm_labels(settings: SettingsDep) -> list[ArmLabel]:
 
 
 ArmLabelsDep = Annotated[list[ArmLabel], Depends(get_arm_labels)]
+
+
+def get_bolna(settings: SettingsDep) -> BolnaClient:
+    return BolnaClient(settings.bolna_api_key, settings.bolna_base_url)
+
+
+BolnaDep = Annotated[BolnaClient, Depends(get_bolna)]

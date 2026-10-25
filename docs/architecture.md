@@ -77,13 +77,17 @@ them down here.
 | Plivo webhooks | `X-Plivo-Signature-V3` (fail closed) |
 | Bolna webhook + `accuse_bot` | shared-secret bearer token configured on the agent; optional IP allowlist (13.203.39.153, 13.126.9.249, 13.202.133.53) |
 | `/admin/*` | `ADMIN_TOKEN` bearer |
-| `/webcall/session` | rate limit per IP; never returns the Bolna key |
+| `/webcall/session` | consent flag, rate limit per IP and per hour in total, `user_data` set by us; never returns the Bolna key |
 
 ## Deploy (to decide on Day 2)
 
 Backend needs a stable public HTTPS URL for Plivo/Bolna callbacks and a Postgres DB.
 Web is a plain Next.js app. Pick the simplest host the team already has access to and
 write the choice here.
+
+Behind a load balancer or proxy, run uvicorn with `--proxy-headers
+--forwarded-allow-ips=<proxy ip>` so `/webcall/session` limits each real client, not
+the proxy. The limits are per process: with several workers each one counts on its own.
 
 Schema changes are Alembic revisions in `backend/migrations/versions/`. Run
 `uv run pk migrate` as a deploy step (the API only migrates itself when `ENV=dev`). It
