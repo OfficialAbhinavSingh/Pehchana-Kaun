@@ -253,6 +253,42 @@ def _routed_call(app_client, uuid: str) -> str:
     return only_call().id
 
 
+def test_dial_status_after_the_pipeline_finished_still_fills_the_duration(app_client, queued):
+    """The recording callback can arrive first and the pipeline mark the call processed
+    before dial-status: the duration must still land (the stats censor on it)."""
+    cid = _routed_call(app_client, "race")
+    rec = f"/telephony/plivo/recording?call_id={cid}"
+    assert post(app_client, rec, {"RecordUrl": "https://media.plivo.com/r.mp3"}).status_code == 204
+    assert queued == [cid]
+    with db.get_sessionmaker()() as s:
+        s.get(Call, cid).status = CallStatus.PROCESSED
+        s.commit()
+
+    q = f"/telephony/plivo/dial-status?call_id={cid}"
+    form = {"DialBLegStatus": "hangup", "DialBLegDuration": "75"}
+    assert post(app_client, q, form).status_code == 204
+    call = only_call()
+    assert (call.status, call.duration_s) == (CallStatus.PROCESSED, 75.0)
+    assert call.ended_at is not None and call.answered_at is not None
+
+    # a repeat of the callback changes nothing
+    ended = call.ended_at
+    assert post(app_client, q, {**form, "DialBLegDuration": "10"}).status_code == 204
+    call = only_call()
+    assert (call.duration_s, call.ended_at) == (75.0, ended)
+
+
+def test_unanswered_dial_status_never_touches_a_processed_call(app_client):
+    cid = _routed_call(app_client, "race-2")
+    with db.get_sessionmaker()() as s:
+        s.get(Call, cid).status = CallStatus.PROCESSED
+        s.commit()
+    q = f"/telephony/plivo/dial-status?call_id={cid}"
+    assert post(app_client, q, {"DialBLegStatus": "no-answer"}).status_code == 204
+    call = only_call()
+    assert (call.status, call.duration_s, call.ended_at) == (CallStatus.PROCESSED, None, None)
+
+
 def test_dial_status_for_another_provider_call_id_is_refused(app_client):
     cid = _routed_call(app_client, "mine")
     q = f"/telephony/plivo/dial-status?call_id={cid}"

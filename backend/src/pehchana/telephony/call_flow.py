@@ -172,6 +172,15 @@ def finish_dial(
     """Dial ended: record timings, or mark FAILED if the arm never picked up."""
     result = provider.parse_dial_status(form)
     _check_belongs(call, provider, result.provider_call_id)
+    if call.status == CallStatus.PROCESSED and result.answered and call.duration_s is None:
+        # The recording callback can beat this one, and the pipeline then finishes the
+        # call first. Only fill what is missing: status and anything already set stay.
+        call.duration_s = result.duration_s
+        call.ended_at = call.ended_at or utcnow()
+        if result.duration_s is not None and call.answered_at is None:
+            call.answered_at = call.ended_at - timedelta(seconds=result.duration_s)
+        session.commit()
+        return
     if call.status not in _OPEN:
         return  # late or duplicate callback must not rewrite a finished call
     now = utcnow()
