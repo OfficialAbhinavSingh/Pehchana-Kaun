@@ -21,6 +21,7 @@ from pehchana.models import (
     AccusationSource,
     Call,
     CallStatus,
+    Channel,
     Giveaway,
     Source,
 )
@@ -63,8 +64,10 @@ def add_call(
     caller: str | None = None,
     minutes: int = 0,
     tags: tuple[str, ...] = (),
+    channel: Channel = Channel.PHONE,
 ) -> None:
     call = Call(
+        channel=channel,
         arm_id=arm,
         arm_kind="human" if arm == "human" else "ai",
         status=status,
@@ -332,3 +335,14 @@ def test_the_real_arms_file_has_labels_for_every_arm():
     labels = load_arm_labels(Settings().arms_file)
     assert [x.id for x in labels] == ["human", "kalpa", "cartesia", "sarvam"]
     assert all(x.public_label for x in labels)
+
+
+def test_browser_games_stay_out_of_the_headline_numbers(board):
+    # No stereo recording to time them on, and web callers never meet the human arm.
+    add_call("kalpa", duration=40, accused=10)
+    add_call("kalpa", duration=40, accused=12, channel=Channel.WEB)
+    add_call("cartesia", duration=40, accused=5, channel=Channel.WEB)
+    body = board()
+    assert body["total_calls"] == 1
+    assert (arm(body, "voice-a")["n_calls"], arm(body, "voice-b")["n_calls"]) == (1, 0)
+    assert [a["n_calls"] for a in body["by_language"]["hi"]] == [1]
