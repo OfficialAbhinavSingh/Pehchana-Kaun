@@ -140,8 +140,10 @@ def test_numbers_sheet(client):
     assert "Calls counted (real, phone, processed): **10**" in sheet
     assert "Unique callers: **5**, plus 4 calls with no caller id" in sheet
     assert "Human called a bot by mistake: **25% of 4 calls**" in sheet
-    assert "| Voice A | 4 | 75% | 0:20 (0:10 to -) |" not in sheet  # CI hidden when open
-    assert "| Voice A | 4 | 75% | 0:20 | " in sheet
+    # Voice A: censored at 9 s, caught at 10, 20, 30 s: S hits 0.5 at 20 s, then 0
+    assert "| Voice A | 4 | 75% | 0:20 (0:10 to 0:30) | 0% | yes |" in sheet
+    # first call only drops the repeat caller's 20 s call: S = 0.5 already at 10 s
+    assert "| Voice A | 3 | 67% | 0:10 (0:10 to 0:30) | 0% | yes |" in sheet
     assert "| Voice B | 2 | 0% | > 1:35 (not reached) | 100% | yes |" in sheet
     assert "2 such calls dropped" in sheet  # Voice B at 4 s and the 9 s call
     assert "- slow_reply: 1" in sheet
