@@ -77,6 +77,8 @@ class Settings(BaseSettings):
     reveal_vendors: bool = False
     include_demo_data: bool = False
     min_calls_for_ranking: int = 5
+    # Seconds one computed leaderboard is served before it is rebuilt (0 = no cache).
+    leaderboard_cache_s: float = 30.0
 
 
 @lru_cache

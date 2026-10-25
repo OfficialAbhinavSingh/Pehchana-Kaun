@@ -14,7 +14,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime, time
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 from zoneinfo import ZoneInfo
 
 import yaml
@@ -79,6 +79,39 @@ def _parse_live_hours(raw: Mapping[str, object] | None, arm_id: str) -> LiveHour
     return LiveHours(ZoneInfo(str(raw.get("timezone", "UTC"))), tuple(windows))
 
 
+def _read_arms_file(path: Path) -> list[dict[str, Any]]:
+    """The raw ``arms:`` entries of ``bolna/arms.yaml``, rejecting duplicate ids."""
+    raws: list[dict[str, Any]] = yaml.safe_load(path.read_text())["arms"]
+    seen: set[str] = set()
+    for raw in raws:
+        if raw["id"] in seen:
+            raise ValueError(f"duplicate arm id: {raw['id']}")
+        seen.add(raw["id"])
+    return raws
+
+
+@dataclass(frozen=True)
+class ArmLabel:
+    """The public face of an arm, whether or not it can take calls right now."""
+
+    id: str
+    kind: ArmKind
+    public_label: str
+    vendor: str | None
+
+
+def load_arm_labels(path: Path) -> list[ArmLabel]:
+    """Every arm in ``bolna/arms.yaml``, in file order, without resolving env vars.
+
+    The leaderboard needs this: an arm that takes no calls today (env vars unset, or
+    paused) still has past calls to report.
+    """
+    return [
+        ArmLabel(raw["id"], raw["kind"], raw["public_label"], raw.get("vendor"))
+        for raw in _read_arms_file(path)
+    ]
+
+
 def load_arms(path: Path, env: Mapping[str, str] | None = None) -> list[Arm]:
     """Parse ``bolna/arms.yaml`` and resolve the env vars it names.
 
@@ -87,11 +120,7 @@ def load_arms(path: Path, env: Mapping[str, str] | None = None) -> list[Arm]:
     """
     env = env or {}
     arms: list[Arm] = []
-    seen: set[str] = set()
-    for raw in yaml.safe_load(path.read_text())["arms"]:
-        if raw["id"] in seen:
-            raise ValueError(f"duplicate arm id: {raw['id']}")
-        seen.add(raw["id"])
+    for raw in _read_arms_file(path):
         numbers = tuple(
             n.strip() for n in env.get(raw.get("dial_numbers_env", ""), "").split(",") if n.strip()
         )
