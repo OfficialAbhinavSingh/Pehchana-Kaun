@@ -99,6 +99,11 @@ def _observation(call: Call) -> Observation | None:
     return Observation(call.duration_s, False)
 
 
+def top_tags(tags: Counter[str], k: int = TOP_GIVEAWAYS) -> list[tuple[str, int]]:
+    """Most frequent first; ties by name, so the answer does not depend on row order."""
+    return sorted(tags.items(), key=lambda kv: (-kv[1], kv[0]))[:k]
+
+
 def _arm_out(
     label: ArmLabel, calls: Sequence[Call], settings: Settings
 ) -> tuple[ArmStatsOut, ArmStats]:
@@ -121,7 +126,7 @@ def _arm_out(
         fooled_at_60s=stats.fooled_at_60s,
         max_observed_s=stats.max_observed_s,
         curve=[SurvivalPointOut(**vars(p)) for p in stats.curve],
-        top_giveaways=[GiveawayCount(tag=t, count=n) for t, n in tags.most_common(TOP_GIVEAWAYS)],
+        top_giveaways=[GiveawayCount(tag=t, count=n) for t, n in top_tags(tags)],
     )
     return out, stats
 
