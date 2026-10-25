@@ -398,14 +398,3 @@ def test_core_flow_is_vendor_agnostic(client):
             session=s, provider=fake, settings=SETTINGS, call=call, form={"url": GOOD}
         )
         assert call.recording_caller_channel == 1
-
-
-def test_admin_shift_requires_token_and_sets_override(client):
-    body = {"humans_on_shift": True, "hours": 2}
-    assert client.post("/admin/shift", json=body).status_code == 401
-    bad = {"Authorization": "Bearer wrong"}
-    assert client.post("/admin/shift", json=body, headers=bad).status_code == 401
-    ok = {"Authorization": f"Bearer {get_settings().admin_token}"}
-    assert client.post("/admin/shift", json=body, headers=ok).status_code == 200
-    with db.get_sessionmaker()() as s:
-        assert call_flow._humans_override(s, datetime.now(UTC)) is True

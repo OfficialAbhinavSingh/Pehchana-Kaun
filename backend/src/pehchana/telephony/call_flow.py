@@ -33,12 +33,17 @@ def hash_caller(number: str | None, salt: str) -> str | None:
     return hashlib.sha256((salt + number).encode()).hexdigest() if number else None
 
 
-def _humans_override(session: Session, now: datetime) -> bool | None:
-    row = session.scalars(
+def current_shift_override(session: Session, now: datetime) -> ShiftOverride | None:
+    """The latest unexpired admin override of the human arm, if any."""
+    return session.scalars(
         select(ShiftOverride)
         .where(ShiftOverride.until > now)
         .order_by(ShiftOverride.created_at.desc(), ShiftOverride.id.desc())
     ).first()
+
+
+def _humans_override(session: Session, now: datetime) -> bool | None:
+    row = current_shift_override(session, now)
     return row.humans_on_shift if row else None
 
 

@@ -59,7 +59,8 @@ decisions are in [telephony.md](telephony.md). Plivo is the first implementation
 
 - Phone: an arm needs at least one dial number. Web: AI arms with a Bolna agent id only.
 - Human arm: only inside `live_hours` in `bolna/arms.yaml`, unless the admin shift
-  override (`/admin/shift`) forces it on or off.
+  override forces it on or off. `POST /admin/shift` sets it (latest unexpired one wins);
+  `GET /admin/shift` shows it and whether a human arm can take a call right now.
 - Choice is random but balanced: weight divided by (1 + recent calls for that arm), so
   arms get similar sample sizes even with ~100 calls.
 - Nobody available: `busy_xml()` ("call again in a few minutes").
