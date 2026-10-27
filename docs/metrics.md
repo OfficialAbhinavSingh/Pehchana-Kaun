@@ -38,6 +38,18 @@ For the **human control arm**, `accusation_rate` is the **false-accusation rate*
 often people call a real person a bot. This is the baseline every AI arm is judged
 against, and is itself a headline number.
 
+## Browser games
+
+Browser games (`channel=web`, #25) reach AI arms only and have no Plivo stereo
+recording, so they cannot be timed the same way as phone calls. Default, to be
+confirmed with WS2:
+
+- They are **left out** of `/leaderboard` and every headline Turing Clock.
+- They are reported separately, from Bolna's live `accuse_bot` function calls
+  (`FUNCTION` accusations) only: browser games played, share with an accusation.
+- There is no human arm on the web, so a web caller always talks to an AI. Their
+  accusation rate is not comparable with phone calls and is never mixed into them.
+
 ## Honesty rules
 
 - Show `n_calls` next to every number; hide rankings below `MIN_CALLS_FOR_RANKING`.

@@ -1,9 +1,10 @@
 """Public stats.  Owner: WS3 (Leaderboard).
 
 Response shape is the contract with web/: keep it in sync with
-web/src/lib/api.ts. Only REAL calls with status=processed count; demo rows only
-when INCLUDE_DEMO_DATA=true (and the response must say so). Vendor names only when
-REVEAL_VENDORS=true, otherwise public_label from bolna/arms.yaml.
+web/src/lib/api.ts. Only REAL phone calls with status=processed count; demo rows
+only when INCLUDE_DEMO_DATA=true (and the response must say so). Browser games are
+left out: they can't be timed like phone calls (docs/metrics.md#browser-games).
+Vendor names only when REVEAL_VENDORS=true, otherwise public_label from bolna/arms.yaml.
 """
 
 from __future__ import annotations
@@ -24,7 +25,7 @@ from sqlalchemy.orm import Session, selectinload
 from pehchana.api.deps import ArmLabelsDep, SessionDep, SettingsDep
 from pehchana.arms import ArmLabel
 from pehchana.config import Settings
-from pehchana.models import Call, CallStatus, Source, utcnow
+from pehchana.models import Call, CallStatus, Channel, Source, utcnow
 from pehchana.scoring import ArmStats, Observation, arm_stats, first_calls, group_by
 
 log = logging.getLogger(__name__)
@@ -158,7 +159,11 @@ def build_leaderboard(
     sources = [Source.REAL, Source.DEMO] if settings.include_demo_data else [Source.REAL]
     calls: Sequence[Call] = session.scalars(
         select(Call)
-        .where(Call.status == CallStatus.PROCESSED, Call.source.in_(sources))
+        .where(
+            Call.status == CallStatus.PROCESSED,
+            Call.source.in_(sources),
+            Call.channel == Channel.PHONE,
+        )
         .options(selectinload(Call.accusations), selectinload(Call.giveaways))
     ).all()
     if first_call_only:
