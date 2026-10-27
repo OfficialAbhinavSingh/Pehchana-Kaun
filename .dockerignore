@@ -1,0 +1,12 @@
+# Keep the build context to what the backend image copies (Dockerfile).
+**
+!Dockerfile
+!backend
+!bolna
+backend/.venv
+backend/**/__pycache__
+backend/.mypy_cache
+backend/.ruff_cache
+backend/.pytest_cache
+backend/*.db
+backend/tests
