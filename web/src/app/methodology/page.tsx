@@ -103,9 +103,13 @@ export default function MethodologyPage() {
             </nav>
 
             <div className="pt-4 border-t border-[#2B2B38] font-mono text-[11px] text-[#71717A] space-y-2">
-              <strong className="text-[#F5F5F5] block">NOT LIVE RESEARCH RESULTS</strong>
+              <strong className="text-[#F5F5F5] block">METHODOLOGY, NOT RESULTS</strong>
               <p>
-                All preview metrics shown are sample data. Real data will be exported on 29 Oct at the data freeze.
+                This page explains the protocol. For live numbers, see the{" "}
+                <Link href="/leaderboard" className="text-[#8B7CFF] hover:underline">
+                  leaderboard
+                </Link>
+                .
               </p>
             </div>
           </aside>

@@ -1,8 +1,36 @@
-import React from "react";
+"use client";
+
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import Waveform from "@/components/Waveform";
+import { ArmStats, Leaderboard, getLeaderboard } from "@/lib/api";
+
+function pct(n: number): string {
+  return `${Math.round(n * 100)}%`;
+}
+
+function clock(s: number | null): string {
+  if (s === null) return "—";
+  const whole = Math.round(s);
+  return `${Math.floor(whole / 60)}:${(whole % 60).toString().padStart(2, "0")}`;
+}
 
 export default function Home() {
+  const [board, setBoard] = useState<Leaderboard | null>(null);
+
+  useEffect(() => {
+    getLeaderboard()
+      .then(setBoard)
+      .catch(() => setBoard(null));
+  }, []);
+
+  const aiArms: ArmStats[] = (board?.arms ?? []).filter((a) => a.kind === "ai");
+  const rankedAi = aiArms.filter((a) => a.ranked);
+  const human = board?.arms.find((a) => a.kind === "human");
+  const aiCalls = aiArms.reduce((s, a) => s + a.n_calls, 0);
+  const aiAccused = aiArms.reduce((s, a) => s + a.n_accused, 0);
+  const bestArm = rankedAi[0];
+
   return (
     <main className="min-h-screen bg-[#101014] text-[#F5F5F5]">
       {/* ─────────────────────────────────────────────────────────────
@@ -15,7 +43,7 @@ export default function Home() {
             <span className="h-2 w-2 rounded-full bg-[#B8FF4D]" />
             <span>The Voice Identity Experiment</span>
             <span className="text-[#71717A]">·</span>
-            <span>Phone Only / Hindi + English / 60–90 Sec</span>
+            <span>Call or play in browser / Hindi + English / 60–90 Sec</span>
           </div>
 
           {/* Main Title & Hero Visual */}
@@ -30,7 +58,8 @@ export default function Home() {
               </h1>
 
               <p className="mt-6 text-lg sm:text-xl text-[#A1A1AA] max-w-2xl leading-relaxed">
-                One phone call. One mystery voice. Talk to a randomly assigned human or AI and trust your ears.
+                One call. One mystery voice. Talk to a randomly assigned human or AI and trust your
+                ears.
               </p>
 
               <div className="mt-8 flex flex-wrap items-center gap-4">
@@ -93,7 +122,7 @@ export default function Home() {
                 02 / AI?
               </div>
               <h3 className="text-xl sm:text-2xl font-bold font-display text-[#F5F5F5]">
-                Think it’s AI? Say &ldquo;Tum bot ho!&rdquo; on your phone.
+                Think it&apos;s AI? Say &ldquo;Tum bot ho!&rdquo;
               </h3>
               <p className="mt-2 text-sm text-[#A1A1AA] leading-relaxed">
                 Keep talking. Find out who it was when you hang up.
@@ -105,9 +134,9 @@ export default function Home() {
           <div className="mt-8 rounded-[4px] border border-[#2B2B38] bg-[#14141A] px-5 py-3.5 flex flex-wrap items-center justify-between gap-4 font-mono text-xs uppercase tracking-wider text-[#A1A1AA]">
             <div className="flex items-center gap-2 text-[#F5F5F5] font-semibold">
               <span className="h-2 w-2 rounded-full bg-[#B8FF4D]" />
-              <span>NO BROWSER MIC. JUST YOUR PHONE.</span>
+              <span>CALL IN, OR PLAY IN YOUR BROWSER</span>
             </div>
-            <div className="text-[#71717A]">REAL PHONE CALLS · HIDDEN IDENTITY · HI / EN</div>
+            <div className="text-[#71717A]">HIDDEN IDENTITY · HI / EN</div>
             <Link href="/methodology" className="text-[#8B7CFF] hover:underline">
               LESS SCROLLING. MORE SECOND GUESSING. ↗
             </Link>
@@ -139,14 +168,15 @@ export default function Home() {
                 <h3 className="mt-4 text-xl font-bold font-display text-[#F5F5F5] leading-snug">
                   Pick a language.
                   <br />
-                  Answer your phone.
+                  Call or play in browser.
                 </h3>
                 <p className="mt-3 text-sm text-[#A1A1AA] leading-relaxed">
-                  Choose Hindi or English and enter your number. We&apos;ll call your phone to start the experiment.
+                  Choose Hindi or English. Dial in if the number is live, or start the game from
+                  this site with your browser&apos;s microphone.
                 </p>
               </div>
               <div className="mt-6 pt-4 border-t border-[#2B2B38] text-[11px] font-mono text-[#71717A]">
-                PHONE-FIRST ARCHITECTURE
+                YOU START THE CALL
               </div>
             </div>
 
@@ -178,7 +208,7 @@ export default function Home() {
                   Then see the reveal.
                 </h3>
                 <p className="mt-3 text-sm text-[#A1A1AA] leading-relaxed">
-                  If you suspect AI, say &ldquo;Tum bot ho!&rdquo; End the call on your phone to discover who you spoke to.
+                  If you suspect AI, say &ldquo;Tum bot ho!&rdquo; End the call to discover who you spoke to.
                 </p>
               </div>
               <div className="mt-6 pt-4 border-t border-[#2B2B38] text-[11px] font-mono text-[#71717A]">
@@ -214,7 +244,8 @@ export default function Home() {
               </h3>
 
               <p className="text-base text-[#A1A1AA] leading-relaxed">
-                Say the exact phrase during your phone call in Hindi or English mode. Your first valid accusation starts the scoring story. The website doesn&apos;t listen through your browser.
+                Say the exact phrase during the call, in Hindi or English. Your first valid
+                accusation starts the scoring story.
               </p>
 
               <p className="text-sm text-[#71717A] leading-relaxed">
@@ -254,68 +285,75 @@ export default function Home() {
                 Every conversation asks a bigger question.
               </h2>
             </div>
-            <span className="rounded-[4px] border border-[#2B2B38] bg-[#1B1B23] px-3.5 py-1.5 font-mono text-xs text-[#B8FF4D]">
-              Sample data · design preview
-            </span>
+            {board && (
+              <span className="rounded-[4px] border border-[#2B2B38] bg-[#1B1B23] px-3.5 py-1.5 font-mono text-xs text-[#B8FF4D]">
+                {board.includes_demo_data ? "Includes seeded demo data" : "Live results"}
+              </span>
+            )}
           </div>
 
           <p className="text-sm text-[#A1A1AA] max-w-2xl mb-8 leading-relaxed">
-            What makes a voice feel human? This is a preview of how the public experiment will report results — not live performance.
+            What makes a voice feel human? Numbers below come straight from the public
+            leaderboard, not a mockup.
           </p>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* Metric 1 */}
-            <div className="rounded-[4px] border border-[#2B2B38] bg-[#1B1B23] p-6">
-              <span className="font-mono text-xs uppercase tracking-wider text-[#71717A]">
-                TOTAL PHONE CALLS
-              </span>
-              <div className="mt-3 text-4xl sm:text-5xl font-bold font-mono text-[#F5F5F5]">
-                1,200
+          {board && board.total_calls > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="rounded-[4px] border border-[#2B2B38] bg-[#1B1B23] p-6">
+                <span className="font-mono text-xs uppercase tracking-wider text-[#71717A]">
+                  TOTAL PHONE CALLS
+                </span>
+                <div className="mt-3 text-4xl sm:text-5xl font-bold font-mono text-[#F5F5F5]">
+                  {board.total_calls}
+                </div>
+                <p className="mt-2 text-xs font-mono text-[#A1A1AA]">
+                  {aiCalls} AI · {human?.n_calls ?? 0} human
+                </p>
               </div>
-              <p className="mt-2 text-xs font-mono text-[#A1A1AA]">
-                900 AI · 300 human
-              </p>
-            </div>
 
-            {/* Metric 2 */}
-            <div className="rounded-[4px] border border-[#2B2B38] bg-[#1B1B23] p-6">
-              <span className="font-mono text-xs uppercase tracking-wider text-[#71717A]">
-                AI ACCUSATION RATE
-              </span>
-              <div className="mt-3 text-4xl sm:text-5xl font-bold font-mono text-[#B8FF4D]">
-                60%
+              <div className="rounded-[4px] border border-[#2B2B38] bg-[#1B1B23] p-6">
+                <span className="font-mono text-xs uppercase tracking-wider text-[#71717A]">
+                  AI ACCUSATION RATE
+                </span>
+                <div className="mt-3 text-4xl sm:text-5xl font-bold font-mono text-[#B8FF4D]">
+                  {aiCalls > 0 ? pct(aiAccused / aiCalls) : "—"}
+                </div>
+                <p className="mt-2 text-xs font-mono text-[#A1A1AA]">
+                  {aiAccused} of {aiCalls} AI calls
+                </p>
               </div>
-              <p className="mt-2 text-xs font-mono text-[#A1A1AA]">
-                540 of 900 AI calls
-              </p>
-            </div>
 
-            {/* Metric 3 */}
-            <div className="rounded-[4px] border border-[#2B2B38] bg-[#1B1B23] p-6">
-              <span className="font-mono text-xs uppercase tracking-wider text-[#71717A]">
-                MEDIAN TURING CLOCK¹
-              </span>
-              <div className="mt-3 text-4xl sm:text-5xl font-bold font-mono text-[#8B7CFF]">
-                32s
+              <div className="rounded-[4px] border border-[#2B2B38] bg-[#1B1B23] p-6">
+                <span className="font-mono text-xs uppercase tracking-wider text-[#71717A]">
+                  FASTEST MEDIAN TURING CLOCK¹
+                </span>
+                <div className="mt-3 text-4xl sm:text-5xl font-bold font-mono text-[#8B7CFF]">
+                  {bestArm ? clock(bestArm.median_turing_clock_s) : "—"}
+                </div>
+                <p className="mt-2 text-xs font-mono text-[#A1A1AA]">
+                  {bestArm ? bestArm.display_name : "no voice ranked yet"}
+                </p>
               </div>
-              <p className="mt-2 text-xs font-mono text-[#A1A1AA]">
-                Among 540 detected AI calls only
-              </p>
-            </div>
 
-            {/* Metric 4 */}
-            <div className="rounded-[4px] border border-[#2B2B38] bg-[#1B1B23] p-6">
-              <span className="font-mono text-xs uppercase tracking-wider text-[#71717A]">
-                HUMAN FALSE ACCUSATIONS
-              </span>
-              <div className="mt-3 text-4xl sm:text-5xl font-bold font-mono text-[#FFB547]">
-                15%
+              <div className="rounded-[4px] border border-[#2B2B38] bg-[#1B1B23] p-6">
+                <span className="font-mono text-xs uppercase tracking-wider text-[#71717A]">
+                  HUMAN FALSE ACCUSATIONS
+                </span>
+                <div className="mt-3 text-4xl sm:text-5xl font-bold font-mono text-[#FFB547]">
+                  {human ? pct(human.accusation_rate) : "—"}
+                </div>
+                <p className="mt-2 text-xs font-mono text-[#A1A1AA]">
+                  {human ? `${human.n_accused} of ${human.n_calls} human calls` : "no human calls yet"}
+                </p>
               </div>
-              <p className="mt-2 text-xs font-mono text-[#A1A1AA]">
-                45 of 300 human calls
-              </p>
             </div>
-          </div>
+          ) : (
+            <div className="rounded-[4px] border border-[#2B2B38] bg-[#1B1B23] p-8 text-center font-mono text-sm text-[#A1A1AA]">
+              Abhi shuru hua hai. Pehle callers mein se ek bano.
+              <br />
+              Just started. Be one of the first callers.
+            </div>
+          )}
         </div>
       </section>
 
@@ -345,80 +383,60 @@ export default function Home() {
           </div>
 
           <div className="flex items-center justify-between text-xs font-mono text-[#71717A] mb-3">
-            <span>SAMPLE DATA · DESIGN PREVIEW</span>
-            <span>FICTIONAL PROVIDERS / LOWER ACCUSATION ≠ BETTER IN EVERY CONTEXT</span>
+            <span>VOICE NAMES ONLY · NO VENDOR NAMES</span>
+            <span>LOWER ACCUSATION ≠ BETTER IN EVERY CONTEXT</span>
           </div>
 
           <div className="overflow-x-auto rounded-[4px] border border-[#2B2B38] bg-[#1B1B23]">
             <table className="w-full text-left font-mono text-xs">
               <thead className="border-b border-[#2B2B38] bg-[#14141A] text-[#71717A] uppercase tracking-wider">
                 <tr>
-                  <th className="py-4 px-6">Model / Provider</th>
+                  <th className="py-4 px-6">Voice</th>
                   <th className="py-4 px-6">AI Calls</th>
                   <th className="py-4 px-6">Accused</th>
                   <th className="py-4 px-6">Clock¹</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#2B2B38] text-[#F5F5F5]">
-                {/* Aster */}
-                <tr className="hover:bg-[#22222D] transition-colors">
-                  <td className="py-4 px-6">
-                    <Link href="/leaderboard/aster-v1" className="font-bold text-[#F5F5F5] hover:text-[#B8FF4D]">
-                      Aster / v1 ↗
-                    </Link>
-                    <span className="block text-[11px] text-[#A1A1AA]">Orchid Labs</span>
-                  </td>
-                  <td className="py-4 px-6">300</td>
-                  <td className="py-4 px-6">
-                    <span className="font-bold text-[#B8FF4D]">50%</span>
-                    <span className="block text-[11px] text-[#A1A1AA]">150 / 300</span>
-                  </td>
-                  <td className="py-4 px-6 font-bold text-[#F5F5F5]">
-                    38s <span className="text-[11px] font-normal text-[#71717A] block">detected only</span>
-                  </td>
-                </tr>
-
-                {/* Echo */}
-                <tr className="hover:bg-[#22222D] transition-colors">
-                  <td className="py-4 px-6">
-                    <Link href="/leaderboard" className="font-bold text-[#F5F5F5] hover:text-[#B8FF4D]">
-                      Echo / v2 ↗
-                    </Link>
-                    <span className="block text-[11px] text-[#A1A1AA]">Fable Audio</span>
-                  </td>
-                  <td className="py-4 px-6">300</td>
-                  <td className="py-4 px-6">
-                    <span className="font-bold text-[#B8FF4D]">60%</span>
-                    <span className="block text-[11px] text-[#A1A1AA]">180 / 300</span>
-                  </td>
-                  <td className="py-4 px-6 font-bold text-[#F5F5F5]">
-                    32s <span className="text-[11px] font-normal text-[#71717A] block">detected only</span>
-                  </td>
-                </tr>
-
-                {/* Mica */}
-                <tr className="hover:bg-[#22222D] transition-colors">
-                  <td className="py-4 px-6">
-                    <Link href="/leaderboard" className="font-bold text-[#F5F5F5] hover:text-[#B8FF4D]">
-                      Mica / v1 ↗
-                    </Link>
-                    <span className="block text-[11px] text-[#A1A1AA]">Loom Voice</span>
-                  </td>
-                  <td className="py-4 px-6">300</td>
-                  <td className="py-4 px-6">
-                    <span className="font-bold text-[#B8FF4D]">70%</span>
-                    <span className="block text-[11px] text-[#A1A1AA]">210 / 300</span>
-                  </td>
-                  <td className="py-4 px-6 font-bold text-[#F5F5F5]">
-                    26s <span className="text-[11px] font-normal text-[#71717A] block">detected only</span>
-                  </td>
-                </tr>
+                {aiArms.length === 0 ? (
+                  <tr>
+                    <td className="py-4 px-6 text-[#71717A]" colSpan={4}>
+                      No AI calls yet. Be the first to play.
+                    </td>
+                  </tr>
+                ) : (
+                  aiArms.map((a) => (
+                    <tr key={a.arm_id} className="hover:bg-[#22222D] transition-colors">
+                      <td className="py-4 px-6">
+                        <Link
+                          href={`/leaderboard/${a.arm_id}`}
+                          className="font-bold text-[#F5F5F5] hover:text-[#B8FF4D]"
+                        >
+                          {a.display_name} ↗
+                        </Link>
+                      </td>
+                      <td className="py-4 px-6">{a.n_calls}</td>
+                      <td className="py-4 px-6">
+                        <span className="font-bold text-[#B8FF4D]">{pct(a.accusation_rate)}</span>
+                        <span className="block text-[11px] text-[#A1A1AA]">
+                          {a.n_accused} / {a.n_calls}
+                        </span>
+                      </td>
+                      <td className="py-4 px-6 font-bold text-[#F5F5F5]">
+                        {clock(a.median_turing_clock_s)}{" "}
+                        <span className="text-[11px] font-normal text-[#71717A] block">
+                          detected only
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
 
           <div className="mt-4 text-[11px] font-mono text-[#71717A]">
-            ¹ Median Turing Clock among detected AI calls only. Undetected calls are not 0s. All models and providers are fictional.
+            ¹ Median Turing Clock among detected AI calls only. Undetected calls are not 0s.
           </div>
         </div>
       </section>
@@ -443,7 +461,7 @@ export default function Home() {
                 Some calls end without detection. Those are right-censored observations, not zero-second detections. We report them separately and use a survival curve to show the fuller picture.
               </p>
               <p className="text-sm text-[#71717A]">
-                Random assignment helps keep identity hidden. It does not remove selection bias, differences between languages, or the limits of a short phone call.
+                Random assignment helps keep identity hidden. It does not remove selection bias, differences between languages, or the limits of a short call.
               </p>
             </div>
             <div className="mt-8">
@@ -474,10 +492,13 @@ export default function Home() {
             </h2>
             <div className="mt-6 space-y-4 text-base text-[#A1A1AA] leading-relaxed">
               <p>
-                The proposed experiment records calls for transcription, accusation scoring and research. You must explicitly agree before continuing.
+                The call is recorded for transcription, accusation scoring and research. You&apos;ll
+                hear the consent notice before anyone picks up, and you must stay on the line to
+                agree.
               </p>
               <p className="text-sm text-[#71717A]">
-                This is a prototype. Storage, retention, access and deletion procedures are pending policy confirmation. Final terms must be available before real calls launch. Don&apos;t share sensitive personal information in a conversation.
+                We never keep your phone number: only a one-way hash, so repeat callers can be
+                counted. Don&apos;t share sensitive personal information in a conversation.
               </p>
             </div>
             <div className="mt-8">
@@ -512,10 +533,12 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="rounded-[4px] border border-[#2B2B38] bg-[#1B1B23] p-7">
               <h3 className="text-lg font-bold font-display text-[#F5F5F5]">
-                Do I need to speak to my browser?
+                Do I need my browser microphone?
               </h3>
               <p className="mt-3 text-sm text-[#A1A1AA] leading-relaxed">
-                No. You&apos;ll receive a real phone call. This page only shows call status and the reveal; it has no browser microphone, transcript or call controls.
+                Only if you play in browser. Calling the game&apos;s number uses your phone, and this
+                site never listens through your browser in that mode. Playing in browser uses your
+                browser&apos;s microphone for the call itself.
               </p>
             </div>
 
@@ -533,7 +556,8 @@ export default function Home() {
                 What if I accuse a human?
               </h3>
               <p className="mt-3 text-sm text-[#A1A1AA] leading-relaxed">
-                You&apos;ll see that after the call. A recorded accusation against a human counts as a false accusation, not an AI detection.
+                A recorded accusation against a human counts as a false accusation, not an AI
+                detection. Overall results are on the leaderboard for everyone.
               </p>
             </div>
 
@@ -542,7 +566,9 @@ export default function Home() {
                 Are the leaderboard numbers real?
               </h3>
               <p className="mt-3 text-sm text-[#A1A1AA] leading-relaxed">
-                Not in this design preview. Every metric is sample data, and all provider names are fictional. Public research results should include cohort sizes and limitations.
+                Yes, read live from <code className="text-[#8B7CFF]">GET /leaderboard</code>. Vendor
+                names are hidden unless explicitly revealed; voices are labeled Voice A/B/C. A demo
+                banner shows if seeded demo data is ever mixed in.
               </p>
             </div>
           </div>
@@ -576,7 +602,7 @@ export default function Home() {
               Play the Game ↗
             </Link>
             <span className="font-mono text-[11px] uppercase tracking-wider text-[#101014]/70 font-semibold">
-              PHONE ONLY · HINDI / ENGLISH · CONSENT FIRST
+              CALL OR BROWSER · HINDI / ENGLISH · CONSENT FIRST
             </span>
           </div>
         </div>

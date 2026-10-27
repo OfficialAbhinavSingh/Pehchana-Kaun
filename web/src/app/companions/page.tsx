@@ -2,8 +2,6 @@ import React from "react";
 import Link from "next/link";
 
 export default function CompanionsPage() {
-  const maskedPhone = "+91 ••••• ••210 HINDI";
-
   return (
     <main className="min-h-screen bg-[#101014] text-[#F5F5F5] px-4 py-12 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl space-y-12">
@@ -15,144 +13,146 @@ export default function CompanionsPage() {
           <h1 className="mt-2 text-4xl sm:text-6xl font-bold font-display uppercase tracking-tight text-[#F5F5F5]">
             A clear next step.
             <br />
-            <span className="text-[#B8FF4D]">Even when it&apos;s not a call.</span>
+            <span className="text-[#B8FF4D]">Even when a session fails.</span>
           </h1>
           <p className="mt-4 text-base text-[#A1A1AA] max-w-2xl leading-relaxed">
-            Connection, recovery and post-call processing states. Identity remains hidden until a completed reveal is available.
+            Browser-game connection and recovery states. The game only ever runs over phone calls
+            (inbound, when the public number is live) or an AI voice in the browser; the site never
+            places an outbound call.
           </p>
         </div>
 
-        {/* 6 State Cards Grid */}
+        {/* State Cards Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* State 1: Connecting */}
           <div className="rounded-[4px] border border-[#2B2B38] bg-[#1B1B23] p-7 space-y-4">
             <div className="flex items-center justify-between font-mono text-xs">
-              <span className="text-[#8B7CFF] uppercase font-bold">CALL INITIATION / CONNECTING</span>
-              <span className="text-[#71717A]">{maskedPhone}</span>
+              <span className="text-[#8B7CFF] uppercase font-bold">BROWSER GAME / CONNECTING</span>
+              <span className="text-[#71717A]">POST /webcall/session</span>
             </div>
-            <div className="text-xs font-mono text-[#A1A1AA] uppercase">Connecting securely</div>
+            <div className="text-xs font-mono text-[#A1A1AA] uppercase">Minting your session</div>
             <h3 className="text-2xl font-bold font-display text-[#F5F5F5]">
               Finding your mystery voice.
             </h3>
             <p className="text-sm text-[#A1A1AA] leading-relaxed">
-              We&apos;re preparing your phone call. Keep this page open and your phone nearby. The participant&apos;s identity is hidden.
+              The browser is asking the backend for an AI voice session. Microphone access is
+              requested once it&apos;s ready.
             </p>
             <div className="pt-3 border-t border-[#2B2B38] flex items-center gap-2 font-mono text-xs text-[#71717A]">
               <span className="h-2 w-2 rounded-full bg-[#8B7CFF] animate-spin" />
-              <span>Preparing your call · No browser audio or microphone access is needed.</span>
+              <span>Usually under a second · AI voice only.</span>
             </div>
           </div>
 
-          {/* State 2: Ringing */}
+          {/* State 2: Rate limited */}
           <div className="rounded-[4px] border border-[#2B2B38] bg-[#1B1B23] p-7 space-y-4">
             <div className="flex items-center justify-between font-mono text-xs">
-              <span className="text-[#B8FF4D] uppercase font-bold">CALL INITIATION / RINGING</span>
-              <span className="text-[#71717A]">{maskedPhone}</span>
+              <span className="text-[#FFB547] uppercase font-bold">BROWSER GAME / 429</span>
+              <span className="text-[#71717A]">RATE LIMITED</span>
             </div>
-            <div className="text-xs font-mono text-[#A1A1AA] uppercase">Your phone is ringing</div>
+            <div className="text-xs font-mono text-[#A1A1AA] uppercase">Too many sessions</div>
             <h3 className="text-2xl font-bold font-display text-[#F5F5F5]">
-              Pick up. It&apos;s time.
+              Give it a few minutes.
             </h3>
             <p className="text-sm text-[#A1A1AA] leading-relaxed">
-              Answer the incoming call on your phone. Your companion will show the timer after connection not before.
-            </p>
-            <div className="pt-3 border-t border-[#2B2B38] flex items-center gap-2 font-mono text-xs text-[#B8FF4D]">
-              <span className="h-2 w-2 rounded-full bg-[#B8FF4D] animate-ping" />
-              <span>Waiting for your answer · The conversation happens on your phone, not in this page.</span>
-            </div>
-          </div>
-
-          {/* State 3: No Answer */}
-          <div className="rounded-[4px] border border-[#2B2B38] bg-[#1B1B23] p-7 space-y-4">
-            <div className="flex items-center justify-between font-mono text-xs">
-              <span className="text-[#FFB547] uppercase font-bold">CALL INITIATION / NO ANSWER</span>
-              <span className="text-[#71717A]">{maskedPhone}</span>
-            </div>
-            <div className="text-xs font-mono text-[#A1A1AA] uppercase">Call not answered</div>
-            <h3 className="text-2xl font-bold font-display text-[#F5F5F5]">
-              Missed the call? No problem.
-            </h3>
-            <p className="text-sm text-[#A1A1AA] leading-relaxed">
-              No connected conversation was recorded for this attempt. Check your phone number and whether incoming calls are blocked.
+              Every session is a real call, so we cap sessions per network and in total per hour.
+              The backend&apos;s own message is shown, not a generic error.
             </p>
             <div className="pt-3 border-t border-[#2B2B38] flex items-center justify-between">
               <Link href="/play" className="font-mono text-xs text-[#B8FF4D] hover:underline font-bold">
-                Try calling again ↗
+                Try again later ↗
               </Link>
-              <span className="text-[11px] font-mono text-[#71717A]">
-                You can return to setup to correct your number.
-              </span>
+              <span className="text-[11px] font-mono text-[#71717A]">No session was started.</span>
             </div>
           </div>
 
-          {/* State 4: Connection Error */}
+          {/* State 3: No arm available */}
           <div className="rounded-[4px] border border-[#2B2B38] bg-[#1B1B23] p-7 space-y-4">
             <div className="flex items-center justify-between font-mono text-xs">
-              <span className="text-[#FF8C8C] uppercase font-bold">CALL INITIATION / CONNECTION ERROR</span>
-              <span className="text-[#71717A]">{maskedPhone}</span>
+              <span className="text-[#FFB547] uppercase font-bold">BROWSER GAME / 503</span>
+              <span className="text-[#71717A]">NO VOICE FREE</span>
+            </div>
+            <div className="text-xs font-mono text-[#A1A1AA] uppercase">Nothing to connect to</div>
+            <h3 className="text-2xl font-bold font-display text-[#F5F5F5]">
+              Every voice is busy.
+            </h3>
+            <p className="text-sm text-[#A1A1AA] leading-relaxed">
+              No AI arm with a browser-call agent is eligible right now. This is rare and usually
+              clears quickly.
+            </p>
+            <div className="pt-3 border-t border-[#2B2B38] flex items-center justify-between">
+              <Link href="/play" className="font-mono text-xs text-[#B8FF4D] hover:underline font-bold">
+                Retry ↗
+              </Link>
+            </div>
+          </div>
+
+          {/* State 4: Mint failed */}
+          <div className="rounded-[4px] border border-[#2B2B38] bg-[#1B1B23] p-7 space-y-4">
+            <div className="flex items-center justify-between font-mono text-xs">
+              <span className="text-[#FF8C8C] uppercase font-bold">BROWSER GAME / 502</span>
+              <span className="text-[#71717A]">SESSION MINT FAILED</span>
             </div>
             <div className="text-xs font-mono text-[#A1A1AA] uppercase">We couldn&apos;t connect</div>
             <h3 className="text-2xl font-bold font-display text-[#F5F5F5]">
               Let&apos;s try that again.
             </h3>
             <p className="text-sm text-[#A1A1AA] leading-relaxed">
-              The call could not be placed. Check your number and phone reception, then try again. No identity has been revealed.
+              The vendor call to start your session failed. No call is counted; nothing was
+              recorded.
             </p>
             <div className="pt-3 border-t border-[#2B2B38] flex items-center justify-between">
               <Link href="/play" className="font-mono text-xs text-[#B8FF4D] hover:underline font-bold">
-                Retry call ↗
+                Retry ↗
               </Link>
-              <span className="text-[11px] font-mono text-[#71717A]">
-                If this keeps happening, return to setup.
-              </span>
             </div>
           </div>
 
-          {/* State 5: Scoring Pending */}
+          {/* State 5: Live session */}
           <div className="rounded-[4px] border border-[#2B2B38] bg-[#1B1B23] p-7 space-y-4">
             <div className="flex items-center justify-between font-mono text-xs">
-              <span className="text-[#8B7CFF] uppercase font-bold">AFTER THE CALL / SCORING</span>
-              <span className="text-[#71717A]">{maskedPhone}</span>
+              <span className="text-[#B8FF4D] uppercase font-bold">BROWSER GAME / LIVE</span>
+              <span className="text-[#71717A]">SESSION MINTED</span>
             </div>
-            <div className="text-xs font-mono text-[#A1A1AA] uppercase">Call ended · result pending</div>
+            <div className="text-xs font-mono text-[#A1A1AA] uppercase">Session active</div>
             <h3 className="text-2xl font-bold font-display text-[#F5F5F5]">
-              The call&apos;s over. Hold that thought.
+              Pick up. It&apos;s time.
             </h3>
             <p className="text-sm text-[#A1A1AA] leading-relaxed">
-              We&apos;re waiting for the post-call result. Your participant&apos;s identity and accusation timing aren&apos;t available yet.
+              Your browser microphone carries the call. Say &ldquo;Tum bot ho!&rdquo; if you suspect AI;
+              there&apos;s no button for it.
             </p>
-            <div className="pt-3 border-t border-[#2B2B38] flex items-center gap-2 font-mono text-xs text-[#8B7CFF]">
-              <span className="h-2 w-2 rounded-full bg-[#8B7CFF] animate-pulse" />
-              <span>Preparing your reveal · This is a processing state, not live transcription.</span>
+            <div className="pt-3 border-t border-[#2B2B38] flex items-center gap-2 font-mono text-xs text-[#B8FF4D]">
+              <span className="h-2 w-2 rounded-full bg-[#B8FF4D] animate-ping" />
+              <span>Sessions last about 2 minutes and are single-use.</span>
             </div>
           </div>
 
-          {/* State 6: Result Error */}
+          {/* State 6: Not built yet */}
           <div className="rounded-[4px] border border-[#2B2B38] bg-[#1B1B23] p-7 space-y-4">
             <div className="flex items-center justify-between font-mono text-xs">
-              <span className="text-[#FF8C8C] uppercase font-bold">AFTER THE CALL / RESULT ERROR</span>
-              <span className="text-[#71717A]">{maskedPhone}</span>
+              <span className="text-[#71717A] uppercase font-bold">BROWSER GAME / 501</span>
+              <span className="text-[#71717A]">NOT BUILT YET</span>
             </div>
-            <div className="text-xs font-mono text-[#A1A1AA] uppercase">Result unavailable</div>
+            <div className="text-xs font-mono text-[#A1A1AA] uppercase">Browser game not ready</div>
             <h3 className="text-2xl font-bold font-display text-[#F5F5F5]">
-              No verdict yet.
+              Not wired up yet.
             </h3>
             <p className="text-sm text-[#A1A1AA] leading-relaxed">
-              Your result couldn&apos;t be retrieved. We won&apos;t invent an identity, an accusation or a detection time while it&apos;s unavailable.
+              The backend&apos;s Bolna web-call client isn&apos;t built yet. We won&apos;t invent a
+              conversation or a verdict while it isn&apos;t.
             </p>
             <div className="pt-3 border-t border-[#2B2B38] flex items-center justify-between">
-              <Link href="/play" className="font-mono text-xs text-[#B8FF4D] hover:underline font-bold">
-                Check result again ↗
+              <Link href="/leaderboard" className="font-mono text-xs text-[#B8FF4D] hover:underline font-bold">
+                See the leaderboard instead ↗
               </Link>
-              <span className="text-[11px] font-mono text-[#71717A]">
-                Retry retrieves the result; it does not start another call.
-              </span>
             </div>
           </div>
         </div>
 
         <div className="rounded-[4px] border border-[#2B2B38] bg-[#14141A] p-5 font-mono text-xs text-[#71717A]">
-          Only call setup and retry actions start phone calls. No state on this website provides an in-browser mute or end-call control.
+          This site never places an outbound call to your phone. A phone game means you call the
+          public number; a browser game means your browser connects to an AI voice.
         </div>
       </div>
     </main>

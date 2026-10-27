@@ -80,7 +80,7 @@ export default function DesignSystemPage() {
               <div className="text-2xl font-medium text-[#F5F5F5]">Aa Bb 12</div>
               <h3 className="text-base font-bold text-[#F5F5F5]">One phone call. One mystery voice.</h3>
               <p className="text-xs text-[#A1A1AA] leading-relaxed">
-                Body 16 / 1.6 line height. Supporting copy 14 / 1.6. Keep explanations complete and phone-only constraints unmistakable.
+                Body 16 / 1.6 line height. Supporting copy 14 / 1.6. Keep explanations complete and which channel (phone or browser) unmistakable.
               </p>
             </div>
 

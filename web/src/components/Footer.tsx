@@ -43,7 +43,7 @@ export default function Footer() {
           <p>© 2026 Pehchaano Labs · Built for Bolna Symphony Buildathon</p>
           <div className="flex items-center gap-3">
             <span className="inline-block h-2 w-2 rounded-full bg-[#B8FF4D]" />
-            <span>PHONE ONLY · HINDI + ENGLISH · NO BROWSER MIC</span>
+            <span>CALL OR BROWSER · HINDI + ENGLISH</span>
             <span className="text-[#8B7CFF]">PK? / 01</span>
           </div>
         </div>
