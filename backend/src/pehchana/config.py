@@ -7,7 +7,7 @@ from functools import lru_cache
 from pathlib import Path
 
 from dotenv import dotenv_values
-from pydantic import Field
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -85,6 +85,50 @@ class Settings(BaseSettings):
     webcall_per_ip: int = 3
     webcall_per_ip_window_s: float = 600.0
     webcall_per_hour: int = 120
+
+    @field_validator("database_url")
+    @classmethod
+    def _postgres_driver(cls, url: str) -> str:
+        """Hosts hand out ``postgres://`` or ``postgresql://`` URLs. SQLAlchemy would read
+        the first as an unknown dialect and the second as psycopg2, which we do not ship."""
+        for prefix in ("postgres://", "postgresql://"):
+            if url.startswith(prefix):
+                return "postgresql+psycopg://" + url[len(prefix) :]
+        return url
+
+    def production_problems(self) -> list[str]:
+        """Reasons this configuration must not serve real callers (empty when fine).
+
+        The defaults are for local dev; deployed with them, ``/admin`` would accept
+        ``change-me`` and caller hashes could be reversed from a known salt.
+        """
+        problems = []
+        for name in ("admin_token", "caller_hash_salt", "bolna_shared_secret"):
+            value = getattr(self, name)
+            if value in ("", "change-me"):
+                problems.append(f"{name.upper()} is unset or still the dev default")
+            elif len(value) < 16 and name != "bolna_shared_secret":
+                problems.append(f"{name.upper()} is shorter than 16 characters")
+        if not self.plivo_auth_token:
+            problems.append("PLIVO_AUTH_TOKEN is unset, so every webhook would be refused")
+        if not self.public_base_url.startswith("https://"):
+            problems.append("PUBLIC_BASE_URL must be https:// (vendors sign the public URL)")
+        if self.database_url.startswith("sqlite"):
+            problems.append("DATABASE_URL points at SQLite; production uses Postgres")
+        if self.include_demo_data:
+            problems.append("INCLUDE_DEMO_DATA=true would put fake calls in the public stats")
+        return problems
+
+    def production_warnings(self) -> list[str]:
+        """Things worth fixing that do not stop a launch."""
+        warnings = []
+        if all("localhost" in origin or "127.0.0.1" in origin for origin in self.cors_origins):
+            warnings.append("CORS_ORIGINS only allows localhost: the deployed site cannot call us")
+        if not self.consent_audio_url:
+            warnings.append("CONSENT_AUDIO_URL is unset: callers hear the text-to-speech notice")
+        if not self.bolna_api_key:
+            warnings.append("BOLNA_API_KEY is unset: browser games cannot start")
+        return warnings
 
 
 @lru_cache

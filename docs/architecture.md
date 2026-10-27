@@ -80,15 +80,16 @@ them down here.
 | `/admin/*` | `ADMIN_TOKEN` bearer |
 | `/webcall/session` | consent flag, rate limit per IP and per hour in total, `user_data` set by us; never returns the Bolna key |
 
-## Deploy (to decide on Day 2)
+## Deploy
 
-Backend needs a stable public HTTPS URL for Plivo/Bolna callbacks and a Postgres DB.
-Web is a plain Next.js app. Pick the simplest host the team already has access to and
-write the choice here.
-
-Behind a load balancer or proxy, run uvicorn with `--proxy-headers
---forwarded-allow-ips=<proxy ip>` so `/webcall/session` limits each real client, not
-the proxy. The limits are per process: with several workers each one counts on its own.
+Full steps, environment and host criteria: [deploy.md](deploy.md). In short: one backend
+container (`Dockerfile`) behind a host's HTTPS proxy, with Postgres. The container checks
+its configuration (`pk check-config`), migrates (`pk migrate`) and serves with
+`--proxy-headers`, so `/webcall/session` limits each real client, not the proxy. The
+limits are per process: with several workers each one counts on its own. In `ENV=prod`
+the app refuses to boot on dev secrets, an `http://` base URL, SQLite or demo data in the
+public stats. The host is not chosen yet (the choice goes in deploy.md). Web is a plain
+Next.js app, deployed separately.
 
 Schema changes are Alembic revisions in `backend/migrations/versions/`. Run
 `uv run pk migrate` as a deploy step (the API only migrates itself when `ENV=dev`). It
