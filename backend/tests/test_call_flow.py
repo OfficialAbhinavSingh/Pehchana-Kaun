@@ -11,7 +11,7 @@ from pehchana import db
 from pehchana.api.deps import get_arms
 from pehchana.arms import Arm
 from pehchana.config import Settings, get_settings
-from pehchana.models import Call, CallStatus, ShiftOverride
+from pehchana.models import Call, CallStatus, ShiftOverride, Source
 from pehchana.telephony import call_flow
 from pehchana.telephony.base import (
     CallPlan,
@@ -77,6 +77,15 @@ def test_full_happy_path(app_client):
     r = post(app_client, q, {"RecordUrl": "https://media.plivo.com/a.mp3"})
     assert r.status_code == 204
     assert only_call().recording_url == "https://media.plivo.com/a.mp3"
+
+
+def test_simulated_callers_are_stored_as_demo_and_real_callers_as_real(app_client):
+    post(app_client, "/telephony/plivo/answer", {"From": "+919876543210", "CallUUID": "real"})
+    sim_caller = call_flow.SIMULATED_CALLER_PREFIX + "07"
+    post(app_client, "/telephony/plivo/answer", {"From": sim_caller, "CallUUID": "sim"})
+    with db.get_sessionmaker()() as s:
+        sources = {c.provider_call_id: c.source for c in s.scalars(select(Call))}
+    assert sources == {"real": Source.REAL, "sim": Source.DEMO}
 
 
 def test_answer_retry_is_idempotent(app_client):
