@@ -12,6 +12,8 @@ export default function Navbar() {
     { href: "/#rules", label: "How it works" },
     { href: "/leaderboard", label: "Leaderboard" },
     { href: "/methodology", label: "Methodology" },
+    { href: "/companions", label: "Companions" },
+    { href: "/design-system", label: "Design System" },
   ];
 
   return (
@@ -29,17 +31,15 @@ export default function Navbar() {
         </Link>
 
         {/* Desktop Navigation Links */}
-        <nav className="hidden md:flex items-center gap-8">
+        <nav className="hidden lg:flex items-center gap-7">
           {navLinks.map((link) => {
-            const isActive =
-              pathname === link.href ||
-              (link.href.startsWith("/#") && pathname === "/");
+            const isActive = pathname === link.href;
             return (
               <Link
                 key={link.href}
                 href={link.href}
-                className={`text-sm font-medium transition-colors hover:text-[#F5F5F5] ${
-                  isActive ? "text-[#F5F5F5]" : "text-[#A1A1AA]"
+                className={`text-xs font-mono uppercase tracking-wider transition-colors hover:text-[#F5F5F5] ${
+                  isActive ? "text-[#B8FF4D] font-bold" : "text-[#A1A1AA]"
                 }`}
               >
                 {link.label}
@@ -61,7 +61,7 @@ export default function Navbar() {
           <button
             type="button"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden flex h-10 w-10 items-center justify-center rounded-[4px] border border-[#2B2B38] text-[#F5F5F5] hover:bg-[#1B1B23]"
+            className="lg:hidden flex h-10 w-10 items-center justify-center rounded-[4px] border border-[#2B2B38] text-[#F5F5F5] hover:bg-[#1B1B23]"
             aria-label="Toggle navigation menu"
             aria-expanded={mobileMenuOpen}
           >
@@ -80,19 +80,19 @@ export default function Navbar() {
 
       {/* Mobile Drawer Menu */}
       {mobileMenuOpen && (
-        <div className="md:hidden border-b border-[#2B2B38] bg-[#1B1B23] px-4 py-5">
-          <div className="flex flex-col gap-4">
+        <div className="lg:hidden border-b border-[#2B2B38] bg-[#1B1B23] px-4 py-5">
+          <div className="flex flex-col gap-4 font-mono text-xs uppercase tracking-wider">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
                 onClick={() => setMobileMenuOpen(false)}
-                className="text-base font-medium text-[#F5F5F5] hover:text-[#B8FF4D]"
+                className="text-[#F5F5F5] hover:text-[#B8FF4D] py-1"
               >
                 {link.label}
               </Link>
             ))}
-            <div className="pt-2 border-t border-[#2B2B38]">
+            <div className="pt-3 border-t border-[#2B2B38]">
               <Link
                 href="/play"
                 onClick={() => setMobileMenuOpen(false)}
