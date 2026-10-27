@@ -1,4 +1,4 @@
-.PHONY: setup dev-api dev-web check check-api check-web fmt db-up db-down migrate
+.PHONY: setup dev-api dev-web check check-api check-web fmt db-up db-down migrate simulate
 
 setup:
 	cd backend && uv sync
@@ -23,6 +23,10 @@ fmt:
 
 migrate:
 	cd backend && uv run pk migrate
+
+# Rehearse the phone flow against a running backend: make simulate TARGET=https://...
+simulate:
+	cd backend && uv run pk simulate-call --target $(or $(TARGET),http://localhost:8000)
 
 db-up:
 	docker compose up -d db
