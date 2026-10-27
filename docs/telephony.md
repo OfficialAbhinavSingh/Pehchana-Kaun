@@ -51,7 +51,9 @@ field name.
    arm is eligible, return the busy response and insert nothing.
 2. `POST .../dial-status?call_id=`: mark `ended` with duration, or `failed` if the arm
    never picked up (failed calls never count in stats). A late or duplicate callback on
-   a finished call is ignored.
+   a finished call is ignored, with one exception: if the recording callback came first
+   and the pipeline already marked the call `processed`, an answered dial-status still
+   fills in the missing duration (the stats censor on it) and leaves the status alone.
 3. `POST .../recording?call_id=`: store `recording_url` and `recording_caller_channel`
    once (the first callback wins; retries and duplicates are no-ops), then queue
    `pipeline.process_call` unless the call failed or is already processed. If the

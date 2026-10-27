@@ -1,15 +1,17 @@
 """Operator endpoints, guarded by the ADMIN_TOKEN bearer token.  Owner: WS1."""
 
 import secrets
-from datetime import timedelta
+from datetime import UTC, timedelta
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Header, HTTPException, status
 from pydantic import BaseModel, Field
 
 from pehchana.api._stub import not_implemented
-from pehchana.api.deps import SessionDep, SettingsDep
+from pehchana.api.deps import ArmsDep, SessionDep, SettingsDep
+from pehchana.arms import eligible_arms
 from pehchana.models import ShiftOverride, utcnow
+from pehchana.telephony.call_flow import current_shift_override
 
 
 def require_admin(settings: SettingsDep, authorization: Annotated[str, Header()] = "") -> None:
@@ -36,6 +38,33 @@ def set_shift(body: ShiftIn, session: SessionDep) -> dict[str, object]:
     )
     session.commit()
     return {"humans_on_shift": body.humans_on_shift, "until": until.isoformat()}
+
+
+@router.get("/shift")
+def get_shift(session: SessionDep, arms: ArmsDep) -> dict[str, object]:
+    """Current override and whether a human arm can take a call right now."""
+    now = utcnow()
+    row = current_shift_override(session, now)
+    open_now = any(
+        a.is_human
+        for a in eligible_arms(
+            arms,
+            channel="phone",
+            now=now,
+            humans_override=row.humans_on_shift if row else None,
+        )
+    )
+    return {
+        "override": None
+        if row is None
+        else {
+            "humans_on_shift": row.humans_on_shift,
+            # SQLite hands back naive datetimes; they were stored as UTC.
+            "until": row.until.replace(tzinfo=row.until.tzinfo or UTC).isoformat(),
+            "set_by": row.set_by,
+        },
+        "humans_open_now": open_now,
+    }
 
 
 @router.post("/calls/{call_id}/reprocess")
