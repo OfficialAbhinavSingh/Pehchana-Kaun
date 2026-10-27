@@ -346,3 +346,11 @@ def test_browser_games_stay_out_of_the_headline_numbers(board):
     assert body["total_calls"] == 1
     assert (arm(body, "voice-a")["n_calls"], arm(body, "voice-b")["n_calls"]) == (1, 0)
     assert [a["n_calls"] for a in body["by_language"]["hi"]] == [1]
+
+
+def test_giveaway_ties_are_broken_by_name_not_row_order(board):
+    # Six tags seen once each: which five make the list must not depend on insert order.
+    add_call("kalpa", accused=10, tags=("too_perfect", "slow_reply", "content"))
+    add_call("kalpa", accused=12, tags=("talked_over", "other", "flat_emotion"))
+    tags = [g["tag"] for g in arm(board(), "voice-a")["top_giveaways"]]
+    assert tags == ["content", "flat_emotion", "other", "slow_reply", "talked_over"]
