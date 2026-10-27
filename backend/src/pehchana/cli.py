@@ -5,6 +5,8 @@ from typing import Annotated
 
 import typer
 
+from pehchana.simulate import SCENARIOS, Simulator, UnknownDialect, get_dialect, verify_db
+
 app = typer.Typer(no_args_is_help=True, help="Pehchana Kaun? operator commands")
 
 
@@ -84,6 +86,83 @@ def numbers(
     data = json.loads(snapshot.read_text())
     labels = load_arm_labels(settings.arms_file)
     typer.echo(numbers_sheet(data, labels, settings, short_call_s=short_call_s))
+
+
+@app.command("simulate-call")
+def simulate_call(
+    target: str = typer.Option(
+        "http://localhost:8000",
+        help="Backend to send the webhooks to (its PUBLIC_BASE_URL is signed).",
+    ),
+    provider: str | None = typer.Option(
+        None, help="Telephony vendor to imitate (default: TELEPHONY_PROVIDER)."
+    ),
+    scenario: str = typer.Option("all", help="all, or one of: " + ", ".join(SCENARIOS)),
+    calls: int = typer.Option(
+        1, min=1, help="How many times to run the happy path (arm coverage)."
+    ),
+    check_db: bool = typer.Option(
+        False, help="Also check the rows in DATABASE_URL (same database as the backend)."
+    ),
+) -> None:
+    """Rehearse the phone flow with signed fake Plivo webhooks. See docs/runbook.md."""
+    import httpx
+
+    from pehchana.arms import load_arms
+    from pehchana.config import arm_env, get_settings
+    from pehchana.db import get_sessionmaker
+
+    settings = get_settings()
+    if scenario != "all" and scenario not in SCENARIOS:
+        typer.echo(f"unknown scenario {scenario!r}", err=True)
+        raise typer.Exit(code=2)
+    try:
+        dialect = get_dialect(provider or settings.telephony_provider)
+    except UnknownDialect as e:
+        typer.echo(str(e), err=True)
+        raise typer.Exit(code=2) from e
+    if not dialect.token(settings):
+        typer.echo(
+            f"no {dialect.name} signing token is set: the webhooks cannot be signed", err=True
+        )
+        raise typer.Exit(code=2)
+    arms = load_arms(settings.arms_file, arm_env())
+    names = list(SCENARIOS) if scenario == "all" else [scenario]
+    plan = names + ["happy"] * (calls - 1) if "happy" in names else names
+    reports = []
+    with httpx.Client(base_url=target, timeout=15) as client:
+        sim = Simulator(client, settings, arms, dialect)
+        for name in plan:
+            try:
+                reports.append(sim.run(name))
+            except httpx.HTTPError as e:
+                typer.echo(f"cannot reach {target}: {e}", err=True)
+                raise typer.Exit(code=2) from e
+    if check_db:
+        with get_sessionmaker()() as session:
+            for report in reports:
+                verify_db(session, report)
+    for report in reports:
+        typer.echo(
+            f"{'ok  ' if report.ok else 'FAIL'} {report.scenario}"
+            + (f"  arm={report.arm_id}" if report.arm_id else "")
+        )
+        for step in report.steps:
+            if not step.ok:
+                typer.echo(f"       - {step.name}: {step.detail}")
+    seen = {r.arm_id for r in reports if r.arm_id}
+    missing = [a.id for a in arms if a.id not in seen]
+    if missing and any(r.scenario == "happy" for r in reports):
+        hint = (
+            " The human arm only answers inside its live hours or with an admin override."
+            if "human" in missing
+            else ""
+        )
+        typer.echo(
+            f"arms not reached in this run: {', '.join(missing)} (run more with --calls).{hint}"
+        )
+    if not all(r.ok for r in reports):
+        raise typer.Exit(code=1)
 
 
 @app.command("sync-agents")

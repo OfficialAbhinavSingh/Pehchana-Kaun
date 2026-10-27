@@ -23,6 +23,11 @@ from pehchana.telephony.recordings import InvalidRecording, validate_recording_u
 
 log = logging.getLogger(__name__)
 
+# Callers with this prefix are rehearsals from ``pk simulate-call``. The prefix is not a
+# valid number, so a real caller never has it; such calls are stored as DEMO and stay out
+# of the arm balancing and the public stats.
+SIMULATED_CALLER_PREFIX = "+9100000000"
+
 # How far back "recent calls" looks when balancing arms.
 BALANCE_WINDOW = timedelta(hours=6)
 _OPEN = (CallStatus.ROUTED, CallStatus.LIVE)
@@ -88,6 +93,9 @@ def start_call(
         arm_id=arm.id,
         arm_kind=arm.kind,
         caller_hash=hash_caller(incoming.caller, settings.caller_hash_salt),
+        source=Source.DEMO
+        if (incoming.caller or "").startswith(SIMULATED_CALLER_PREFIX)
+        else Source.REAL,
         provider=provider.name,
         provider_call_id=incoming.provider_call_id,
         started_at=now,
