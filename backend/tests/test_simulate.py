@@ -67,7 +67,7 @@ def test_calls_are_rehearsals_that_stay_out_of_stats_and_balancing(sim):
     with db.get_sessionmaker()() as s:
         call = s.scalars(select(Call)).one()
         assert call.source == Source.DEMO
-        assert call_flow._recent_counts(s, call.started_at) == {}
+        assert call_flow.recent_counts(s, call.started_at) == {}
 
 
 def test_wrong_signing_token_fails_instead_of_passing(client):

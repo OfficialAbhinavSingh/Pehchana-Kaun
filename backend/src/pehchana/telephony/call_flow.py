@@ -52,7 +52,7 @@ def _humans_override(session: Session, now: datetime) -> bool | None:
     return row.humans_on_shift if row else None
 
 
-def _recent_counts(session: Session, now: datetime) -> dict[str, int]:
+def recent_counts(session: Session, now: datetime) -> dict[str, int]:
     rows = session.execute(
         select(Call.arm_id, func.count())
         .where(Call.started_at >= now - BALANCE_WINDOW, Call.source == Source.REAL)
@@ -84,7 +84,7 @@ def start_call(
         arms, channel="phone", now=now, humans_override=_humans_override(session, now)
     )
     try:
-        arm = choose_arm(candidates, _recent_counts(session, now))
+        arm = choose_arm(candidates, recent_counts(session, now))
     except NoArmAvailable:
         return provider.busy_response()
 
