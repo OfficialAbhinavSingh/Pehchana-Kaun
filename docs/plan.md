@@ -40,7 +40,8 @@ WS1:
 - [ ] Record a test call, find which stereo channel is the caller.
 
 WS2:
-- [x] First-agent spike for [issue #11](https://github.com/OfficialAbhinavSingh/Pehchana-Kaun/issues/11): Bolna Kalpa phone agent built with an inbound number, tested across real phone calls, listening notes posted, and reference export saved to `bolna/agents/reference-dashboard-export.json`.
+ - [x] First-agent spike for [issue #11](https://github.com/OfficialAbhinavSingh/Pehchana-Kaun/issues/11): Bolna Kalpa phone agent built with an inbound number, tested
+  across real phone calls, listening notes posted, and reference export saved to `bolna/agents/reference-dashboard-export.json`.
 - [ ] Deepgram on a test recording: are word timestamps sane on 8 kHz Hinglish audio?
 
 WS3:

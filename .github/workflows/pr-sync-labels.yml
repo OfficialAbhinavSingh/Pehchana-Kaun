@@ -1,0 +1,80 @@
+name: Sync PR labels and milestone from its issue
+
+# Each issue's own workflow steps say to open its PR with "Closes #N", which gives the
+# PR a real GitHub-tracked link to the issue. When a PR has one, the issue already
+# carries the right workstream/type/priority labels and milestone; this copies them onto
+# the PR so that doesn't have to happen by hand. A PR without the link is left alone.
+
+on:
+  pull_request_target:
+    types: [opened, reopened, edited, synchronize]
+
+permissions:
+  pull-requests: write
+  issues: read
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            // GitHub's own linkification, not a body regex: catches every phrasing it
+            // accepts (closes/fixes/resolves, any case, "Closes #1, #2", ...) and nothing
+            // it wouldn't actually auto-close.
+            const prNumber = context.payload.pull_request.number;
+            const { repository } = await github.graphql(
+              `query($owner: String!, $repo: String!, $number: Int!) {
+                repository(owner: $owner, name: $repo) {
+                  pullRequest(number: $number) {
+                    closingIssuesReferences(first: 10) { nodes { number } }
+                  }
+                }
+              }`,
+              { owner: context.repo.owner, repo: context.repo.repo, number: prNumber }
+            );
+            const issueNumbers = repository.pullRequest.closingIssuesReferences.nodes.map(n => n.number);
+
+            if (issueNumbers.length === 0) {
+              core.info("this PR doesn't close an issue (no linked 'Closes #N'), nothing to sync");
+              return;
+            }
+
+            const labels = new Set();
+            let milestone = null;
+            for (const number of issueNumbers) {
+              let issue;
+              try {
+                ({ data: issue } = await github.rest.issues.get({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: number,
+                }));
+              } catch (e) {
+                core.warning(`#${number}: ${e.message}`);
+                continue;
+              }
+              for (const l of issue.labels) labels.add(typeof l === "string" ? l : l.name);
+              if (!milestone && issue.milestone) milestone = issue.milestone.number;
+            }
+
+            if (labels.size > 0) {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                labels: [...labels],
+              });
+            }
+
+            if (milestone && !context.payload.pull_request.milestone) {
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                milestone,
+              });
+            }
+
+            core.info(`synced labels [${[...labels].join(", ")}] and milestone ${milestone} from #${issueNumbers.join(", #")}`);

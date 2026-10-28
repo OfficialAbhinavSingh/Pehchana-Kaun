@@ -68,6 +68,7 @@ field name.
 3. Set `TELEPHONY_PROVIDER=<vendor>`. Routes `/telephony/<vendor>/*` appear
    automatically.
 4. Point the vendor's webhooks at those URLs.
+5. Add a `Dialect` for it in `simulate.py` so `pk simulate-call --provider <vendor>` works.
 
 No change to `call_flow.py`, `arms.py`, `models.py`, the pipeline or the routes.
 `tests/test_telephony.py` holds the contract checks a new provider should also pass,
@@ -125,6 +126,33 @@ vendor with no core changes.
 - `/admin/*` requires `Authorization: Bearer <ADMIN_TOKEN>`, compared in constant time.
 - No raw caller numbers in the database, logs or tests.
 
+## Rehearsing without a phone
+
+`pk simulate-call --target <backend url>` plays the vendor: it sends signed `answer`,
+`dial-status` and `recording` webhooks and checks every reply. `make simulate TARGET=...`
+is the same. It needs `PLIVO_AUTH_TOKEN` (the backend's) and the same `PUBLIC_BASE_URL`,
+because Plivo signs the public URL, not the one the request travels to.
+
+| Scenario | What it checks |
+|---|---|
+| `happy` | answer XML plays, records and dials an arm; dial-status and recording are accepted |
+| `retries` | repeated webhooks replay the same arm and create no duplicates |
+| `no-answer` | an arm that never picks up ends the call as failed |
+| `bad-signature` | unsigned and wrongly signed requests get 403 |
+| `bad-recording` | after hang-up, an untrusted recording host gets 400 and does not block a good one |
+| `mismatch` | a dial-status naming another call id gets 409 |
+
+`--provider NAME` picks the vendor to imitate (default `TELEPHONY_PROVIDER`). `--calls N` repeats the happy path and lists arms never reached (the human arm only
+answers in its live hours or with an admin override). `--check-db` also checks the rows,
+and only works against the backend's own database. Exit code 1 means a check failed.
+
+Rehearsal calls use a reserved caller prefix (`SIMULATED_CALLER_PREFIX`, not a valid
+number), so they are stored as `DEMO`: never in the public stats or the arm balancing.
+A new vendor also needs a `Dialect` in `simulate.py` (its form fields, signing and answer
+format) and an entry in `DIALECTS`; the scenarios themselves do not change.
+It cannot prove Plivo's real field names or recording host, or that audio is processed
+(the recording URL is made up). That is what the first real call is for.
+
 ## Not verified against real Plivo
 
 Confirm on the Day-1 test call, then update this section and
@@ -141,5 +169,6 @@ Confirm on the Day-1 test call, then update this section and
 
 `tests/test_telephony.py` (provider contract, Plivo parsing, signatures with Plivo's own
 signing helper), `tests/test_arms.py` (loading, live hours, eligibility, balancing),
+`tests/test_simulate.py` (every rehearsal scenario against the app, mutation-checked),
 `tests/test_call_flow.py` (signed webhooks through the real routes, failure and busy
 paths, admin shift, a fake second provider). Run `make check-api`.

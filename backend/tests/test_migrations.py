@@ -1,4 +1,10 @@
-"""Alembic migrations against real SQLite files, including a copy of the old schema."""
+"""Alembic migrations against real SQLite files, including a copy of the old schema.
+
+Set TEST_POSTGRES_URL (a throwaway database; its public schema is wiped) to run every
+test again on Postgres, which is what production uses.
+"""
+
+import os
 
 import pytest
 from alembic import command
@@ -14,10 +20,33 @@ NOW = "2026-10-23 10:00:00"
 PAIR = {"provider", "provider_call_id"}
 
 
-@pytest.fixture
-def engine(tmp_path):
-    eng = create_engine(f"sqlite:///{tmp_path / 'pk.db'}")
-    yield eng
+POSTGRES_URL = os.environ.get("TEST_POSTGRES_URL")
+
+
+def _wipe(eng) -> None:
+    with eng.begin() as c:
+        c.execute(text("DROP SCHEMA public CASCADE"))
+        c.execute(text("CREATE SCHEMA public"))
+
+
+@pytest.fixture(
+    params=[
+        "sqlite",
+        pytest.param(
+            "postgres",
+            marks=pytest.mark.skipif(not POSTGRES_URL, reason="TEST_POSTGRES_URL not set"),
+        ),
+    ]
+)
+def engine(request, tmp_path):
+    if request.param == "sqlite":
+        eng = create_engine(f"sqlite:///{tmp_path / 'pk.db'}")
+        yield eng
+    else:
+        eng = create_engine(POSTGRES_URL)
+        _wipe(eng)
+        yield eng
+        _wipe(eng)
     eng.dispose()
 
 
@@ -135,3 +164,18 @@ def test_downgrade_restores_plivo_ids_and_drops_other_vendors(engine):
     with engine.connect() as c:
         rows = dict(c.execute(text("SELECT id, plivo_call_uuid FROM calls")).all())
     assert rows == {"1": "id-1", "2": None}
+
+
+def test_full_round_trip_leaves_nothing_behind(engine):
+    """upgrade, downgrade to nothing, upgrade again: a failed deploy can be rolled back
+    and retried. On Postgres this also catches enum types a downgrade forgets to drop."""
+    migrate.upgrade(engine)
+    with engine.begin() as c:
+        command.downgrade(migrate._config(c), "base")
+    assert set(inspect(engine).get_table_names()) <= {"alembic_version"}
+    if engine.dialect.name == "postgresql":
+        assert inspect(engine).get_enums() == []
+    migrate.upgrade(engine)
+    with engine.connect() as c:
+        ctx = MigrationContext.configure(c, opts={"compare_type": True})
+        assert compare_metadata(ctx, Base.metadata) == []

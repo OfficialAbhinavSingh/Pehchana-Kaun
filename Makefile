@@ -1,4 +1,4 @@
-.PHONY: setup dev-api dev-web check check-api check-web fmt db-up db-down migrate
+.PHONY: docker-build test-postgres setup dev-api dev-web check check-api check-web fmt db-up db-down migrate simulate
 
 setup:
 	cd backend && uv sync
@@ -23,6 +23,17 @@ fmt:
 
 migrate:
 	cd backend && uv run pk migrate
+
+# Rehearse the phone flow against a running backend: make simulate TARGET=https://...
+simulate:
+	cd backend && uv run pk simulate-call --target $(or $(TARGET),http://localhost:8000)
+
+docker-build:
+	docker build -t pehchana-api .
+
+# Migration tests on the docker-compose Postgres (wipes its public schema).
+test-postgres: db-up
+	cd backend && TEST_POSTGRES_URL=postgresql+psycopg://pk:pk@localhost:5432/pk uv run pytest tests/test_migrations.py
 
 db-up:
 	docker compose up -d db

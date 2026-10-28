@@ -1,5 +1,6 @@
 """FastAPI app factory. Run: ``uv run uvicorn pehchana.main:app --reload``."""
 
+import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
@@ -11,10 +12,20 @@ from pehchana.api import admin, bolna, health, leaderboard, telephony, webcall
 from pehchana.config import get_settings
 from pehchana.migrate import upgrade
 
+log = logging.getLogger(__name__)
+
 
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
-    if get_settings().env == "dev":
+    settings = get_settings()
+    if settings.env == "prod":
+        # Fail at boot, not on the first real call: a prod deploy with dev secrets is open.
+        problems = settings.production_problems()
+        if problems:
+            raise RuntimeError("refusing to start in production: " + "; ".join(problems))
+        for warning in settings.production_warnings():
+            log.warning(warning)
+    if settings.env == "dev":
         upgrade()  # dev only; elsewhere run `pk migrate` as a deploy step
     yield
 
