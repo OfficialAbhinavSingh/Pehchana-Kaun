@@ -118,6 +118,11 @@ def test_answer_xml_caps_ring_and_call_length(plivo):
 def test_answer_xml_falls_back_to_tts_consent(plivo):
     xml = plivo.answer_response(CallPlan(**{**PLAN.__dict__, "consent_audio_url": None})).body
     assert "<Speak" in xml
+    # the spoken fallback says what docs/copy.md says, in both languages
+    for phrase in ("game hai", "record hogi", "personal details", "phone rakh dijiye"):
+        assert phrase in xml
+    for phrase in ("a game", "person or an AI", "recorded for research", "hang up now"):
+        assert phrase in xml
     assert "<Play" not in xml
 
 

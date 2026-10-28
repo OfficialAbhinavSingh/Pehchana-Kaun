@@ -25,6 +25,8 @@ web/next-env.d.ts
 # call data never goes in git
 recordings/
 *.mp3
+# The consent notice is not call data: it is served from the site (docs/consent-audio.md).
+!web/public/consent.mp3
 *.wav
 exports/
 

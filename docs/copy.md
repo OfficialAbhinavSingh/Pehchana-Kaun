@@ -127,9 +127,8 @@ sound like one of the arms).
 > recorded for research. Please don't share personal details. Stay on the line to
 > agree, or hang up now.
 
-Differences from the current `<Speak>` fallback in `telephony/plivo.py`: adds "don't
-share personal details" and an explicit way out. Update `_CONSENT_TEXT` to match once
-the audio is recorded, so both paths say the same thing.
+The spoken `<Speak>` fallback in `telephony/plivo.py` says the same words, in both
+languages. How to record, export, host and check the audio: [consent-audio.md](consent-audio.md).
 
 ## Leaderboard wireframe
 
