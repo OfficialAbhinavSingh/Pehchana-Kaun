@@ -40,7 +40,8 @@ WS1:
 - [ ] Record a test call, find which stereo channel is the caller.
 
 WS2:
-- [x] First-agent listening rehearsal for [issue #11](https://github.com/OfficialAbhinavSingh/Pehchana-Kaun/issues/11): completed using the browser-only protocol in [ws2-01-browser-rehearsal.md](ws2-01-browser-rehearsal.md). This is exploratory substitute evidence; Bolna/phone-specific behavior stays pending provider access.
+- [ ] Bolna account; one agent by hand in the dashboard (Kalpa voice, Hinglish persona).
+- [ ] Call it from a phone. Note latency, how Hinglish sounds, whether LiD switches.
 - [ ] Deepgram on a test recording: are word timestamps sane on 8 kHz Hinglish audio?
 
 WS3:
