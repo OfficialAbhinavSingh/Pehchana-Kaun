@@ -25,7 +25,7 @@ from sqlalchemy.orm import Session
 from pehchana.api.deps import ArmsDep, BolnaDep, SessionDep, SettingsDep
 from pehchana.arms import NoArmAvailable, choose_arm, eligible_arms
 from pehchana.models import Call, CallStatus, Channel, utcnow
-from pehchana.telephony.call_flow import _recent_counts
+from pehchana.telephony.call_flow import recent_counts
 
 log = logging.getLogger(__name__)
 
@@ -95,7 +95,7 @@ def mint_session(
     started = utcnow()
     candidates = eligible_arms(arms, channel="web", now=started)
     try:
-        arm = choose_arm(candidates, _recent_counts(db, started))
+        arm = choose_arm(candidates, recent_counts(db, started))
     except NoArmAvailable:
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE, detail="no voice is free for the browser game"
