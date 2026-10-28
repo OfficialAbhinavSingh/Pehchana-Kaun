@@ -20,9 +20,14 @@ from __future__ import annotations
 
 from typing import Any
 
+import httpx
+
 TERMINAL_STATUSES = frozenset(
     {"completed", "no-answer", "busy", "failed", "canceled", "stopped", "error", "balance-low"}
 )
+
+# Connect/write/pool, then a per-chunk read cap; mint is a single small POST.
+_TIMEOUT = httpx.Timeout(10.0, read=20.0)
 
 
 class BolnaClient:
@@ -39,5 +44,21 @@ class BolnaClient:
         raise NotImplementedError
 
     def mint_web_call_session(self, agent_id: str, user_data: dict[str, Any] | None = None) -> Any:
-        """POST /web-call/session for the browser SDK. TODO(WS3 uses it, WS2 owns it)"""
-        raise NotImplementedError
+        """POST /web-call/session for the browser SDK.
+
+        Returns Bolna's JSON unchanged; the caller (webcall.py) passes it straight to
+        the browser. Raises on any non-2xx response or network failure -- the caller
+        turns every such exception into a 502 without leaking it, so this never needs
+        to interpret Bolna's error body itself.
+        """
+        body: dict[str, Any] = {"agent_id": agent_id}
+        if user_data is not None:
+            body["user_data"] = user_data
+        with httpx.Client(base_url=self.base_url, timeout=_TIMEOUT) as client:
+            response = client.post(
+                "/web-call/session",
+                json=body,
+                headers={"Authorization": f"Bearer {self.api_key}"},
+            )
+            response.raise_for_status()
+            return response.json()

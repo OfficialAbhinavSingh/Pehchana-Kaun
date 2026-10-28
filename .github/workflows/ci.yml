@@ -12,6 +12,20 @@ concurrency:
 jobs:
   backend:
     runs-on: ubuntu-latest
+    # Production is Postgres, so the migration tests run on it too (tests/test_migrations.py).
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: pk
+          POSTGRES_PASSWORD: pk
+          POSTGRES_DB: pk
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U pk" --health-interval 5s --health-retries 10
+    env:
+      TEST_POSTGRES_URL: postgresql+psycopg://pk:pk@localhost:5432/pk
     defaults:
       run:
         working-directory: backend

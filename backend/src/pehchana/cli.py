@@ -45,6 +45,26 @@ def check_consent(
     typer.echo("now listen to it and time it: docs/consent-audio.md")
 
 
+@app.command("check-config")
+def check_config() -> None:
+    """Check the environment is safe to serve real callers (run before a deploy).
+
+    Judges the settings as production settings whatever ENV says, so it works from a
+    laptop: ``ENV=... pk check-config`` with the host's variables exported.
+    """
+    from pehchana.config import get_settings
+
+    settings = get_settings()
+    for warning in settings.production_warnings():
+        typer.echo(f"warning: {warning}", err=True)
+    problems = settings.production_problems()
+    for problem in problems:
+        typer.echo(f"error: {problem}", err=True)
+    if problems:
+        raise typer.Exit(code=1)
+    typer.echo("configuration is fit for production")
+
+
 @app.command("seed-demo")
 def seed_demo(
     n: int = typer.Option(200, "--n", help="How many demo calls to insert."),
