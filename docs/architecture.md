@@ -88,7 +88,7 @@ its configuration (`pk check-config`), migrates (`pk migrate`) and serves with
 `--proxy-headers`, so `/webcall/session` limits each real client, not the proxy. The
 limits are per process: with several workers each one counts on its own. In `ENV=prod`
 the app refuses to boot on dev secrets, an `http://` base URL, SQLite or demo data in the
-public stats. The host is not chosen yet (the choice goes in deploy.md). Web is a plain
+public stats. The backend runs on Render, set up by `render.yaml`. Web is a plain
 Next.js app, deployed separately.
 
 Schema changes are Alembic revisions in `backend/migrations/versions/`. Run
