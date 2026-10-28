@@ -1,0 +1,78 @@
+# Render Blueprint for the backend (docs/deploy.md). Render builds the root Dockerfile;
+# backend/start.sh checks the config, migrates, then serves.
+# The Plivo/Bolna/Deepgram/Anthropic keys, arm numbers and URLs are prompted for once,
+# when the Blueprint is created (sync: false); change them later in the dashboard.
+databases:
+  - name: pehchana-db
+    databaseName: pehchana
+    user: pehchana
+    # Paid plan: the free database expires. Empty list = no connections from outside
+    # Render; add your own IP in the dashboard when you need psql from a laptop.
+    ipAllowList: []
+
+services:
+  - type: web
+    name: pehchana-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    # Paid plan: a free web service sleeps and Plivo would time out on the first call.
+    plan: 0.5c-512mb
+    # One instance: two starting together would migrate at the same time, and the
+    # browser-game rate limits are per process.
+    numInstances: 1
+    healthCheckPath: /healthz
+    autoDeployTrigger: "off"
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: pehchana-db
+          property: connectionString
+      - key: ENV
+        value: prod
+      - key: PUBLIC_BASE_URL # https://<service>.onrender.com or your own domain, no path
+        sync: false
+      - key: CORS_ORIGINS # JSON list, e.g. ["https://<the site's domain>"]
+        sync: false
+      # Generated once at creation and kept. Never rotate CALLER_HASH_SALT: it would
+      # break first-call-only stats.
+      - key: ADMIN_TOKEN
+        generateValue: true
+      - key: CALLER_HASH_SALT
+        generateValue: true
+      - key: BOLNA_SHARED_SECRET # put the same value on the Bolna agents
+        generateValue: true
+      - key: INCLUDE_DEMO_DATA
+        value: "false"
+      - key: REVEAL_VENDORS
+        value: "false"
+      - key: TELEPHONY_PROVIDER
+        value: plivo
+      - key: PLIVO_AUTH_ID
+        sync: false
+      - key: PLIVO_AUTH_TOKEN
+        sync: false
+      - key: PLIVO_NUMBER
+        sync: false
+      - key: CONSENT_AUDIO_URL # leave empty until the notice is hosted (callers get TTS)
+        sync: false
+      - key: BOLNA_API_KEY
+        sync: false
+      - key: BOLNA_AGENT_ID_KALPA
+        sync: false
+      - key: BOLNA_AGENT_ID_CARTESIA
+        sync: false
+      - key: BOLNA_AGENT_ID_SARVAM
+        sync: false
+      - key: BOLNA_NUMBER_KALPA
+        sync: false
+      - key: BOLNA_NUMBER_CARTESIA
+        sync: false
+      - key: BOLNA_NUMBER_SARVAM
+        sync: false
+      - key: HUMAN_ARM_NUMBERS # volunteers, comma-separated E.164; never in git
+        sync: false
+      - key: DEEPGRAM_API_KEY
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false

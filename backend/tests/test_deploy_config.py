@@ -1,6 +1,9 @@
 """Production guard rails: what stops a deploy with dev secrets from serving callers."""
 
+from pathlib import Path
+
 import pytest
+import yaml
 from fastapi.testclient import TestClient
 from typer.testing import CliRunner
 
@@ -114,3 +117,40 @@ def test_check_config_command(prod_env):
     bad = runner.invoke(app, ["check-config"])
     assert bad.exit_code == 1
     assert "ADMIN_TOKEN" in bad.output and "https://" in bad.output
+
+
+# --- render.yaml: the Blueprint must set what the production guard demands ---------
+
+ROOT = Path(__file__).resolve().parents[2]
+SECRETS = {"ADMIN_TOKEN", "CALLER_HASH_SALT", "BOLNA_SHARED_SECRET"}
+
+
+def _blueprint_env() -> dict[str, dict]:
+    spec = yaml.safe_load((ROOT / "render.yaml").read_text())
+    return {e["key"]: e for e in spec["services"][0]["envVars"]}
+
+
+def test_blueprint_env_keys_are_ones_the_app_reads():
+    arms = yaml.safe_load((ROOT / "bolna" / "arms.yaml").read_text())
+    arm_envs = {
+        a[k] for a in arms["arms"] for k in ("dial_numbers_env", "bolna_agent_id_env") if a.get(k)
+    }
+    known = {name.upper() for name in Settings.model_fields} | arm_envs
+    assert set(_blueprint_env()) <= known
+
+
+def test_blueprint_generates_secrets_and_never_hardcodes_them():
+    env = _blueprint_env()
+    for key in SECRETS:
+        assert env[key] == {"key": key, "generateValue": True}
+    for key in ("PLIVO_AUTH_TOKEN", "BOLNA_API_KEY", "DEEPGRAM_API_KEY", "ANTHROPIC_API_KEY"):
+        assert env[key].get("sync") is False and "value" not in env[key]
+
+
+def test_blueprint_satisfies_the_production_guard(prod_env):
+    env = _blueprint_env()
+    assert env["ENV"]["value"] == "prod"
+    assert env["INCLUDE_DEMO_DATA"]["value"] == "false"
+    assert "fromDatabase" in env["DATABASE_URL"]
+    for key in ("PUBLIC_BASE_URL", "PLIVO_AUTH_TOKEN", "CORS_ORIGINS"):
+        assert key in env  # prompted for: the guard refuses to boot without them
