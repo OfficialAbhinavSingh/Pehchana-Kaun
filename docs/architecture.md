@@ -67,9 +67,24 @@ decisions are in [telephony.md](telephony.md). Plivo is the first implementation
 
 ## Linking a Plivo call to its Bolna execution
 
-Bolna executions don't carry our call id. Match on (arm's agent id, caller number
-hash, time window). Get the exact field names from a real webhook on Day 2 and write
-them down here.
+Bolna executions do not carry our internal `Call.id` or Plivo's `CallUUID`. We link
+them deterministically on `(agent_id, caller_hash, time_window)`:
+
+1. **`agent_id`**: Matches the `bolna_agent_id` of the arm picked during `/telephony/plivo/answer`.
+2. **`caller_hash`**: Bolna inbound calls report the caller's phone number in `user_number`
+   (and `telephony_data.from_number`). We compute `hash_caller(user_number, settings.caller_hash_salt)`
+   and match against `Call.caller_hash`. The raw number is never persisted.
+3. **`time_window`**: Bolna's `created_at` timestamp matches `Call.started_at` within a
+   window of `[-30s, +60s]`.
+
+**Carrier CLI fallback:** If carrier routing or regulations suppress caller ID forwarding,
+matching falls back to:
+- `agent_id` matching the arm,
+- exactly one open call row (`status` in `ROUTED` or `LIVE`) for that arm in the time window,
+- call duration consistency (`abs(call.duration_s - telephony_data.duration) <= 3` seconds).
+
+A sample redacted terminal payload for tests is stored in
+`backend/tests/fixtures/bolna/execution_completed.json`.
 
 ## Trust boundaries
 
@@ -101,7 +116,7 @@ the matching revision and upgrades, keeping their rows. Change a model? Add a re
 ## Day-1 unknowns (verify with a real call, then update this doc)
 
 - [ ] Can we get an Indian inbound number on Plivo without company DLT paperwork?
-- [ ] Does Plivo `<Dial>` to a Bolna-hosted number work, and what caller id does Bolna see?
+- [x] Does Plivo `<Dial>` to a Bolna-hosted number work, and what caller id does Bolna see? (Spike #3: Kalpa test agent live on BOLNA_NUMBER_KALPA; forwards caller ID to user_number / telephony_data.from_number)
 - [ ] Which stereo channel is the caller (`CALLER_CHANNEL`)?
 - [ ] Does Deepgram `nova-3` with `language=multi` handle Hinglish + Tamil on 8 kHz call audio?
-- [ ] Bolna webhook payload fields for matching (agent id, numbers, timestamps).
+- [x] Bolna webhook payload fields for matching (agent id, numbers, timestamps). (Spike #3: matching on agent_id, user_number, created_at; fixture in backend/tests/fixtures/bolna/execution_completed.json)

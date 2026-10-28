@@ -50,3 +50,23 @@ def test_network_failure_propagates(client):
     respx.post(URL).mock(side_effect=httpx.ConnectTimeout("slow"))
     with pytest.raises(httpx.ConnectTimeout):
         client.mint_web_call_session("agent-a")
+
+
+def test_execution_completed_fixture_has_linking_fields() -> None:
+    import json
+    from pathlib import Path
+
+    fixture_path = Path(__file__).parent / "fixtures" / "bolna" / "execution_completed.json"
+    assert fixture_path.exists(), "execution_completed.json fixture must exist"
+    data = json.loads(fixture_path.read_text(encoding="utf-8"))
+
+    assert data["status"] == "completed"
+    assert data["conversation_duration"] > 0
+    assert "agent_id" in data
+    assert "user_number" in data
+    assert "telephony_data" in data
+    assert data["telephony_data"]["call_type"] == "inbound"
+    assert "from_number" in data["telephony_data"]
+    assert "to_number" in data["telephony_data"]
+    assert "duration" in data["telephony_data"]
+    assert "created_at" in data
