@@ -1,4 +1,4 @@
-"""BolnaClient.mint_web_call_session: the only BolnaClient method WS3's #25 needs."""
+"""BolnaClient: create_agent, get_execution, mint_web_call_session."""
 
 import httpx
 import pytest
@@ -50,3 +50,47 @@ def test_network_failure_propagates(client):
     respx.post(URL).mock(side_effect=httpx.ConnectTimeout("slow"))
     with pytest.raises(httpx.ConnectTimeout):
         client.mint_web_call_session("agent-a")
+
+
+# --- create_agent -------------------------------------------------------------------
+
+CREATE_URL = "https://bolna.example/v2/agent"
+
+
+@respx.mock
+def test_create_agent_returns_the_new_agent_id(client):
+    route = respx.post(CREATE_URL).mock(
+        return_value=httpx.Response(201, json={"agent_id": "agent-xyz", "state": "created"})
+    )
+    assert client.create_agent({"agent_name": "kalpa-test"}) == "agent-xyz"
+    sent = route.calls.last.request
+    assert sent.headers["authorization"] == "Bearer bn-secret"
+    expected = httpx.Request("POST", CREATE_URL, json={"agent_name": "kalpa-test"})
+    assert sent.content == expected.content
+
+
+@respx.mock
+def test_create_agent_raises_on_a_bad_request(client):
+    respx.post(CREATE_URL).mock(return_value=httpx.Response(422, json={"error": "bad toolchain"}))
+    with pytest.raises(httpx.HTTPStatusError):
+        client.create_agent({})
+
+
+# --- get_execution -------------------------------------------------------------------
+
+EXEC_URL = "https://bolna.example/executions/exec-1"
+
+
+@respx.mock
+def test_get_execution_returns_the_payload_unchanged(client):
+    payload = {"status": "completed", "conversation_duration": 42.0, "total_cost": 0.5}
+    route = respx.get(EXEC_URL).mock(return_value=httpx.Response(200, json=payload))
+    assert client.get_execution("exec-1") == payload
+    assert route.calls.last.request.headers["authorization"] == "Bearer bn-secret"
+
+
+@respx.mock
+def test_get_execution_raises_when_not_found(client):
+    respx.get(EXEC_URL).mock(return_value=httpx.Response(404, json={"error": "no such execution"}))
+    with pytest.raises(httpx.HTTPStatusError):
+        client.get_execution("exec-1")
