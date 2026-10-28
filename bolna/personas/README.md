@@ -17,4 +17,7 @@ Rules every persona prompt must include:
 Human volunteers get the same persona brief (name, city, vibe) so the control arm is
 comparable. Keep the volunteer version in `volunteer-brief.md`.
 
-TODO(WS2): write `priya-pune.md` (first persona) and `volunteer-brief.md`.
+`priya-pune.md` and `volunteer-brief.md` are the first persona (#13). The live Bolna
+agent's actual system prompt (`bolna/agents/reference-dashboard-export.json`, #11) is a
+longer, more detailed version of the same character: keep the two in sync by hand until
+`pk sync-agents` (#14) generates the agent from this file instead.
