@@ -19,6 +19,32 @@ def migrate() -> None:
     typer.echo("database is up to date")
 
 
+@app.command("check-consent")
+def check_consent(
+    allow_tts: bool = typer.Option(
+        False, help="Accept an unset CONSENT_AUDIO_URL (callers hear the text-to-speech fallback)."
+    ),
+) -> None:
+    """Fetch CONSENT_AUDIO_URL the way the vendor will and report what is wrong with it."""
+    from pehchana.config import get_settings
+    from pehchana.consent import check_consent_audio
+
+    url = get_settings().consent_audio_url
+    if not url:
+        if allow_tts:
+            typer.echo("no recorded notice set: callers hear the text-to-speech fallback")
+            return
+        typer.echo("error: CONSENT_AUDIO_URL is unset (record the notice, #7)", err=True)
+        raise typer.Exit(code=1)
+    result = check_consent_audio(url)
+    for problem in result.problems:
+        typer.echo(f"error: {problem}", err=True)
+    if not result.ok:
+        raise typer.Exit(code=1)
+    typer.echo(f"consent audio reachable: {result.content_type}, {result.size:,} bytes")
+    typer.echo("now listen to it and time it: docs/consent-audio.md")
+
+
 @app.command("check-config")
 def check_config() -> None:
     """Check the environment is safe to serve real callers (run before a deploy).

@@ -7,8 +7,11 @@ Protection (DPDP) Act applies.
 ## Consent
 
 - Every call starts with a notice **before** anyone answers: it's a game, you may talk
-  to an AI, the call is recorded for research, stay on the line to agree. Hindi and
-  English. The website repeats it with a link to the privacy page.
+  to an AI, the call is recorded for research, don't share personal details, stay on the
+  line to agree or hang up now. Hindi and English, in a human voice (script in
+  [copy.md](copy.md#consent-notice-script-for-mahak-7), how to record it in
+  [consent-audio.md](consent-audio.md)). The website repeats it with a link to the
+  privacy page.
 - Human volunteers sign up explicitly, know they're recorded, and get the same persona
   brief as the AI.
 - AI agents reveal honestly when accused and break character immediately if a caller

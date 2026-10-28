@@ -39,11 +39,16 @@ from pehchana.telephony.base import (
 XML = "application/xml"
 # DialBLegStatus values meaning the arm picked up (and, on the action callback, hung up).
 _ANSWERED = frozenset({"answer", "hangup"})
+# Fallback when CONSENT_AUDIO_URL is unset. Same words as docs/copy.md, Hindi then English.
+# Plivo's <Speak> has no Hindi or Indian-English voice, so the Hindi half is read by an
+# English voice: good enough for a rehearsal, not for launch (record the real notice).
 _CONSENT_TEXT = (
-    "Yeh ek game hai. Aap kisi insaan ya AI se baat kar sakte hain. "
-    "Call research ke liye record hogi. Line par bane rehna matlab aap sahmat hain. "
-    "This is a game. You may be speaking to an AI. The call is recorded for research. "
-    "Stay on the line to agree."
+    "Namaste! Yeh Pehchana Kaun game hai. Aapse koi insaan baat karega ya AI. "
+    "Call research ke liye record hogi. Apni personal details mat batana. "
+    "Line par bane rahe toh aap sahmat hain; nahi khelna toh abhi phone rakh dijiye. "
+    "This is Pehchana Kaun, a game. You will talk to a person or an AI. "
+    "The call is recorded for research. Please do not share personal details. "
+    "Stay on the line to agree, or hang up now."
 )
 
 
