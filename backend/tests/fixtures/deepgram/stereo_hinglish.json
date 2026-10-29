@@ -1,0 +1,258 @@
+{
+  "metadata": {
+    "transaction_key": "deprecated",
+    "request_id": "00000000-0000-0000-0000-000000000000",
+    "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+    "created": "2026-10-29T12:00:00.000Z",
+    "duration": 27.0,
+    "channels": 2,
+    "models": [
+      "nova-3"
+    ],
+    "model_info": {
+      "nova-3": {
+        "name": "nova-3",
+        "version": "2026-10-20",
+        "arch": "nova-3"
+      }
+    }
+  },
+  "results": {
+    "channels": [
+      {
+        "detected_language": "hi",
+        "language_confidence": 0.94,
+        "alternatives": [
+          {
+            "transcript": "haan hello main bangalore se bol raha hoon pune mein mausam kaisa hai tum bot ho",
+            "confidence": 0.96,
+            "words": [
+              {
+                "word": "haan",
+                "start": 3.2,
+                "end": 3.5,
+                "confidence": 0.98
+              },
+              {
+                "word": "hello",
+                "start": 3.6,
+                "end": 4.0,
+                "confidence": 0.99
+              },
+              {
+                "word": "main",
+                "start": 4.2,
+                "end": 4.4,
+                "confidence": 0.97
+              },
+              {
+                "word": "bangalore",
+                "start": 4.5,
+                "end": 5.1,
+                "confidence": 0.95
+              },
+              {
+                "word": "se",
+                "start": 5.2,
+                "end": 5.4,
+                "confidence": 0.98
+              },
+              {
+                "word": "bol",
+                "start": 5.5,
+                "end": 5.7,
+                "confidence": 0.99
+              },
+              {
+                "word": "raha",
+                "start": 5.8,
+                "end": 6.0,
+                "confidence": 0.98
+              },
+              {
+                "word": "hoon",
+                "start": 6.1,
+                "end": 6.3,
+                "confidence": 0.97
+              },
+              {
+                "word": "pune",
+                "start": 10.1,
+                "end": 10.4,
+                "confidence": 0.96
+              },
+              {
+                "word": "mein",
+                "start": 10.5,
+                "end": 10.7,
+                "confidence": 0.98
+              },
+              {
+                "word": "mausam",
+                "start": 10.8,
+                "end": 11.2,
+                "confidence": 0.95
+              },
+              {
+                "word": "kaisa",
+                "start": 11.3,
+                "end": 11.6,
+                "confidence": 0.98
+              },
+              {
+                "word": "hai",
+                "start": 11.7,
+                "end": 11.9,
+                "confidence": 0.99
+              },
+              {
+                "word": "tum",
+                "start": 18.2,
+                "end": 18.4,
+                "confidence": 0.98
+              },
+              {
+                "word": "bot",
+                "start": 18.4,
+                "end": 18.6,
+                "confidence": 0.97
+              },
+              {
+                "word": "ho",
+                "start": 18.6,
+                "end": 18.8,
+                "confidence": 0.99
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "detected_language": "hi",
+        "language_confidence": 0.92,
+        "alternatives": [
+          {
+            "transcript": "haan hello kaun bol raha hai arre main priya bol rahi hoon pune se bas aise hi call kiya",
+            "confidence": 0.97,
+            "words": [
+              {
+                "word": "haan",
+                "start": 1.2,
+                "end": 1.5,
+                "confidence": 0.99
+              },
+              {
+                "word": "hello",
+                "start": 1.6,
+                "end": 2.0,
+                "confidence": 0.99
+              },
+              {
+                "word": "kaun",
+                "start": 2.1,
+                "end": 2.3,
+                "confidence": 0.98
+              },
+              {
+                "word": "bol",
+                "start": 2.4,
+                "end": 2.6,
+                "confidence": 0.99
+              },
+              {
+                "word": "raha",
+                "start": 2.7,
+                "end": 2.9,
+                "confidence": 0.98
+              },
+              {
+                "word": "hai",
+                "start": 3.0,
+                "end": 3.2,
+                "confidence": 0.99
+              },
+              {
+                "word": "arre",
+                "start": 7.0,
+                "end": 7.3,
+                "confidence": 0.95
+              },
+              {
+                "word": "main",
+                "start": 7.4,
+                "end": 7.6,
+                "confidence": 0.98
+              },
+              {
+                "word": "priya",
+                "start": 7.7,
+                "end": 8.1,
+                "confidence": 0.96
+              },
+              {
+                "word": "bol",
+                "start": 8.2,
+                "end": 8.4,
+                "confidence": 0.99
+              },
+              {
+                "word": "rahi",
+                "start": 8.5,
+                "end": 8.7,
+                "confidence": 0.98
+              },
+              {
+                "word": "hoon",
+                "start": 8.8,
+                "end": 9.0,
+                "confidence": 0.97
+              },
+              {
+                "word": "pune",
+                "start": 9.1,
+                "end": 9.4,
+                "confidence": 0.98
+              },
+              {
+                "word": "se",
+                "start": 9.5,
+                "end": 9.7,
+                "confidence": 0.99
+              },
+              {
+                "word": "bas",
+                "start": 13.0,
+                "end": 13.3,
+                "confidence": 0.97
+              },
+              {
+                "word": "aise",
+                "start": 13.4,
+                "end": 13.6,
+                "confidence": 0.96
+              },
+              {
+                "word": "hi",
+                "start": 13.7,
+                "end": 13.8,
+                "confidence": 0.98
+              },
+              {
+                "word": "call",
+                "start": 13.9,
+                "end": 14.2,
+                "confidence": 0.99
+              },
+              {
+                "word": "kiya",
+                "start": 14.3,
+                "end": 14.6,
+                "confidence": 0.98
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

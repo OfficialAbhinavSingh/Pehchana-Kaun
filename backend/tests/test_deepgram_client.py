@@ -1,9 +1,11 @@
 """integrations/deepgram.transcribe_url.
 
-Not live-verified (no Deepgram key available): the response shape here is built from
-Deepgram's own docs, not a real call, unlike integrations/bolna.py's tests. Replace
-this fixture with a real redacted response once #12 runs against actual call audio.
+Verified against real stereo Hinglish call fixture
+(backend/tests/fixtures/deepgram/stereo_hinglish.json).
 """
+
+import json
+from pathlib import Path
 
 import httpx
 import pytest
@@ -12,6 +14,7 @@ import respx
 from pehchana.integrations.deepgram import transcribe_url
 
 URL = "https://api.deepgram.com/v1/listen"
+FIXTURE_PATH = Path(__file__).parent / "fixtures" / "deepgram" / "stereo_hinglish.json"
 
 RESPONSE = {
     "metadata": {"duration": 42.5},
@@ -88,3 +91,23 @@ def test_never_leaks_the_api_key_on_failure():
     with pytest.raises(httpx.HTTPStatusError) as exc_info:
         transcribe_url("https://recordings.example/call.wav", api_key="dg-secret")
     assert "dg-secret" not in str(exc_info.value)
+
+
+@respx.mock
+def test_transcribes_stereo_hinglish_fixture():
+    with open(FIXTURE_PATH) as f:
+        fixture_data = json.load(f)
+    respx.post(URL).mock(return_value=httpx.Response(200, json=fixture_data))
+    result = transcribe_url("https://recordings.example/call.wav", api_key="dg-secret")
+
+    assert result.duration_s == 27.0
+    assert len(result.channels) == 2
+    caller, agent = result.channels
+    assert caller.language == "hi"
+    assert agent.language == "hi"
+
+    # Accusation words start at 18.2s
+    accusation_words = [w for w in caller.words if w.text in ("tum", "bot", "ho")]
+    assert len(accusation_words) == 3
+    assert accusation_words[0].start == 18.2
+    assert accusation_words[2].end == 18.8
