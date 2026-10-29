@@ -1,13 +1,14 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Waveform from "@/components/Waveform";
 
-type Step = "consent" | "start" | "connecting" | "live" | "error";
+type Step = "consent" | "start" | "connecting" | "live" | "ended" | "error";
 
-// Set once the public number from #1 is live. Until then, browser play is the only way in.
-const GAME_NUMBER = process.env.NEXT_PUBLIC_GAME_NUMBER ?? "";
+// Indian game line purchased on Bolna; falls back to +918065356581 (080 6535 6581)
+const GAME_NUMBER = process.env.NEXT_PUBLIC_GAME_NUMBER || "+918065356581";
+const DISPLAY_NUMBER = "080 6535 6581";
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL ?? process.env.API_URL ?? "http://localhost:8000";
 
@@ -21,13 +22,48 @@ export default function PlayPage() {
   const [hasConsented, setHasConsented] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [secondsLeft, setSecondsLeft] = useState<number | null>(null);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const callRef = useRef<any>(null);
 
   useEffect(() => {
     if (step !== "live" || secondsLeft === null) return;
-    if (secondsLeft <= 0) return;
-    const id = setTimeout(() => setSecondsLeft((s) => (s === null ? null : s - 1)), 1000);
+    const id = setTimeout(() => {
+      setSecondsLeft((s) => {
+        if (s === null || s <= 1) {
+          if (callRef.current) {
+            callRef.current.stop().catch(() => {});
+            callRef.current = null;
+          }
+          setStep("ended");
+          return 0;
+        }
+        return s - 1;
+      });
+    }, 1000);
     return () => clearTimeout(id);
   }, [step, secondsLeft]);
+
+  useEffect(() => {
+    return () => {
+      if (callRef.current) {
+        callRef.current.stop().catch(() => {});
+        callRef.current = null;
+      }
+    };
+  }, []);
+
+  const endCall = async () => {
+    if (callRef.current) {
+      try {
+        await callRef.current.stop();
+      } catch {
+        // ignore teardown error
+      }
+      callRef.current = null;
+    }
+    setStep("ended");
+  };
 
   const startBrowserGame = async () => {
     setStep("connecting");
@@ -44,11 +80,43 @@ export default function PlayPage() {
         setStep("error");
         return;
       }
-      const data = (await res.json()) as SessionInfo;
-      setSecondsLeft(typeof data.expires_in === "number" ? data.expires_in : null);
-      setStep("live");
-    } catch {
-      setErrorMessage("Could not reach the game server. Check your connection and try again.");
+      const sessionData = (await res.json()) as SessionInfo;
+      setSecondsLeft(typeof sessionData.expires_in === "number" ? sessionData.expires_in : 120);
+
+      // Dynamically load SDK in client only to prevent any server-side WebRTC issues
+      const { BolnaWebCall } = await import("@bolna/web-call");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const call = new BolnaWebCall({ session: sessionData as any });
+      callRef.current = call;
+
+      call.on("call-start", () => {
+        setStep("live");
+      });
+
+      call.on("volume-level", (level: number) => {
+        setIsSpeaking(level > 0.05);
+      });
+
+      call.on("call-end", () => {
+        callRef.current = null;
+        setStep("ended");
+      });
+
+      call.on("error", (err: { code?: string; message?: string }) => {
+        if (err.code === "microphone_denied") {
+          setErrorMessage(
+            "Microphone permission was denied. Please allow microphone access in your browser to speak with Priya."
+          );
+        } else {
+          setErrorMessage(err.message || "Voice call failed to connect.");
+        }
+        setStep("error");
+      });
+
+      await call.start();
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Could not connect to voice server.";
+      setErrorMessage(msg);
       setStep("error");
     }
   };
@@ -80,7 +148,9 @@ export default function PlayPage() {
               <span className="text-[#2B2B38]">/</span>
               <span
                 className={`flex items-center gap-2 ${
-                  step === "live" ? "text-[#B8FF4D] font-bold" : "text-[#71717A]"
+                  step === "live" || step === "ended"
+                    ? "text-[#B8FF4D] font-bold"
+                    : "text-[#71717A]"
                 }`}
               >
                 <span className="text-[#8B7CFF]">03</span> The call
@@ -114,8 +184,8 @@ export default function PlayPage() {
                     A blind connection
                   </h3>
                   <p className="mt-1 text-sm text-[#A1A1AA] leading-relaxed">
-                    Browser play always reaches an AI voice. You can never be talking to a human in
-                    this mode.
+                    Browser play reaches an AI voice. When you dial our phone line, you could reach
+                    a human or an AI.
                   </p>
                 </div>
 
@@ -136,8 +206,8 @@ export default function PlayPage() {
                     Your browser microphone is used
                   </h3>
                   <p className="mt-1 text-sm text-[#A1A1AA] leading-relaxed">
-                    Playing in browser needs microphone access for the call itself, the browser is
-                    not just a companion screen in this mode.
+                    Playing in browser streams audio directly through WebRTC. You will need to allow
+                    microphone access.
                   </p>
                 </div>
               </div>
@@ -155,7 +225,7 @@ export default function PlayPage() {
                 </div>
 
                 <p className="text-sm text-[#A1A1AA] leading-relaxed">
-                  The call is recorded. Audio may be transcribed to identify valid accusations,
+                  The call is recorded. Audio is transcribed to identify valid accusations,
                   calculate timing and study conversational giveaways.
                 </p>
 
@@ -229,9 +299,7 @@ export default function PlayPage() {
                   is a question.
                 </h1>
                 <p className="mt-4 text-base text-[#A1A1AA] leading-relaxed">
-                  {GAME_NUMBER
-                    ? "Call the number for a chance at a human or an AI, or play in your browser against an AI voice."
-                    : "The public phone line isn't live yet. Play in your browser against an AI voice."}
+                  Call our live research phone line in India, or play in your browser with real-time audio.
                 </p>
               </div>
 
@@ -242,22 +310,20 @@ export default function PlayPage() {
             </div>
 
             <div className="lg:col-span-6 space-y-6">
-              {GAME_NUMBER && (
-                <a
-                  href={`tel:${GAME_NUMBER}`}
-                  className="flex h-16 w-full items-center justify-center gap-3 rounded-[4px] border border-[#2B2B38] bg-[#1B1B23] px-6 font-mono text-sm font-bold uppercase tracking-wider text-[#F5F5F5] hover:border-[#B8FF4D]"
-                >
-                  Call {GAME_NUMBER} ↗
-                </a>
-              )}
+              <a
+                href={`tel:${GAME_NUMBER}`}
+                className="flex h-16 w-full items-center justify-center gap-3 rounded-[4px] border border-[#2B2B38] bg-[#1B1B23] px-6 font-mono text-sm font-bold uppercase tracking-wider text-[#F5F5F5] hover:border-[#B8FF4D] transition-colors"
+              >
+                Call {DISPLAY_NUMBER} ↗
+              </a>
 
               <div className="rounded-[4px] border border-[#2B2B38] bg-[#1B1B23] p-7 space-y-5">
                 <div className="font-mono text-xs uppercase tracking-wider text-[#71717A] border-b border-[#2B2B38] pb-3">
-                  BROWSER GAME / AI VOICES ONLY
+                  BROWSER GAME / LIVE AUDIO WEBRTC
                 </div>
                 <p className="text-sm text-[#A1A1AA] leading-relaxed">
-                  Your browser will ask for microphone access. The call happens over your browser,
-                  no app or download needed.
+                  Your browser will ask for microphone access. Connects directly to Priya over high-fidelity
+                  Opus audio, no app or plugin needed.
                 </p>
 
                 {step === "error" && (
@@ -270,9 +336,9 @@ export default function PlayPage() {
                   type="button"
                   disabled={step === "connecting"}
                   onClick={startBrowserGame}
-                  className="flex h-13 w-full items-center justify-center rounded-[4px] bg-[#B8FF4D] font-mono text-xs font-bold uppercase tracking-wider text-[#101014] hover:bg-[#CDFF7A] shadow-[0_0_20px_rgba(184,255,77,0.3)] disabled:opacity-60"
+                  className="flex h-13 w-full items-center justify-center rounded-[4px] bg-[#B8FF4D] font-mono text-xs font-bold uppercase tracking-wider text-[#101014] hover:bg-[#CDFF7A] shadow-[0_0_20px_rgba(184,255,77,0.3)] disabled:opacity-60 transition-all"
                 >
-                  {step === "connecting" ? "Connecting…" : "Play in browser ↗"}
+                  {step === "connecting" ? "Connecting to Priya…" : "Play in browser ↗"}
                 </button>
 
                 <div className="pt-2 border-t border-[#2B2B38]">
@@ -295,9 +361,9 @@ export default function PlayPage() {
             <div className="flex items-center justify-between font-mono text-xs border-b border-[#2B2B38] pb-4">
               <span className="flex items-center gap-2 text-[#B8FF4D] font-bold">
                 <span className="h-2.5 w-2.5 rounded-full bg-[#B8FF4D] animate-ping" />
-                Session minted
+                Live conversation active
               </span>
-              <span className="text-[#8B7CFF]">BROWSER · AI VOICE · IDENTITY HIDDEN</span>
+              <span className="text-[#8B7CFF]">BROWSER · AI VOICE · WEBRTC AUDIO</span>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
@@ -319,14 +385,24 @@ export default function PlayPage() {
                   <div className="mt-8">
                     <Waveform active={true} size="lg" className="w-full max-w-md mx-auto" />
                   </div>
-                  <div className="mt-3 font-mono text-[11px] text-[#71717A]">
-                    DECORATIVE SIGNAL · NOT LIVE AUDIO
+                  <div className="mt-4 font-mono text-xs text-[#B8FF4D] font-bold flex items-center justify-center gap-2">
+                    <span className="h-2 w-2 rounded-full bg-[#B8FF4D] animate-ping" />
+                    {isSpeaking ? "PRIYA IS SPEAKING..." : "LIVE TWO-WAY AUDIO CONNECTED"}
+                  </div>
+
+                  <div className="mt-6">
+                    <button
+                      type="button"
+                      onClick={endCall}
+                      className="inline-flex items-center justify-center rounded-[4px] border border-[#FF8C8C] bg-[#1B1B23] px-6 py-2.5 font-mono text-xs font-bold uppercase tracking-wider text-[#FF8C8C] hover:bg-[#FF8C8C]/10 transition-colors"
+                    >
+                      Hang up call ✕
+                    </button>
                   </div>
                 </div>
 
                 <div className="font-mono text-xs text-[#71717A]">
-                  The in-browser audio call itself is wired through the Bolna Web Call SDK, tracked
-                  separately. This screen confirms a session was minted for your game.
+                  Connected via Bolna Web Call SDK. Your conversation is encrypted and streamed over WebRTC.
                 </div>
               </div>
 
@@ -340,7 +416,7 @@ export default function PlayPage() {
                   </h2>
                   <p className="text-sm text-[#A1A1AA] leading-relaxed">
                     Say the phrase out loud during the call. There&apos;s no button here, it&apos;s part
-                    of the conversation.
+                    of the natural conversation.
                   </p>
                 </div>
 
@@ -349,17 +425,77 @@ export default function PlayPage() {
                     Your result goes on the leaderboard
                   </h3>
                   <p className="text-sm text-[#A1A1AA] leading-relaxed">
-                    This site never shows a per-call verdict for you specifically; results are
-                    counted into the public, anonymous leaderboard.
+                    Results are counted into the public, anonymous leaderboard. See if Priya fooled you!
                   </p>
                 </div>
 
                 <Link
                   href="/leaderboard"
-                  className="flex h-12 w-full items-center justify-center rounded-[4px] bg-[#B8FF4D] font-mono text-xs font-bold uppercase tracking-wider text-[#101014] hover:bg-[#CDFF7A]"
+                  className="flex h-12 w-full items-center justify-center rounded-[4px] bg-[#B8FF4D] font-mono text-xs font-bold uppercase tracking-wider text-[#101014] hover:bg-[#CDFF7A] transition-colors"
                 >
                   View Leaderboard ↗
                 </Link>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* STEP 4: ENDED */}
+        {step === "ended" && (
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
+            <div className="lg:col-span-7 space-y-6">
+              <div>
+                <span className="font-mono text-xs uppercase tracking-widest text-[#B8FF4D] font-semibold">
+                  CALL COMPLETE
+                </span>
+                <h1 className="mt-2 text-4xl sm:text-6xl font-bold font-display uppercase tracking-tight text-[#F5F5F5] leading-[0.95]">
+                  The voice has
+                  <br />
+                  hung up.
+                </h1>
+                <p className="mt-4 text-base text-[#A1A1AA] leading-relaxed">
+                  Your conversation has ended. The audio recording is queued for timestamped transcription,
+                  giveaway tagging, and Turing Clock evaluation.
+                </p>
+              </div>
+
+              <div className="rounded-[4px] border border-[#2B2B38] bg-[#1B1B23] p-7 space-y-4">
+                <h3 className="text-xl font-bold font-display text-[#F5F5F5]">
+                  What happens next?
+                </h3>
+                <p className="text-sm text-[#A1A1AA] leading-relaxed">
+                  Deepgram transcribes the caller channel to verify any accusation phrase (&ldquo;Tum bot ho!&rdquo;),
+                  and the result is factored into the public Kaplan-Meier survival curve.
+                </p>
+              </div>
+            </div>
+
+            <div className="lg:col-span-5 space-y-6">
+              <div className="rounded-[4px] border border-[#8B7CFF] bg-[#1B1B23] p-7 space-y-5">
+                <h3 className="text-xl font-bold font-display text-[#F5F5F5]">
+                  Check the scores
+                </h3>
+                <p className="text-sm text-[#A1A1AA] leading-relaxed">
+                  See how Priya and the other AI voices stack up against the human control baseline.
+                </p>
+
+                <Link
+                  href="/leaderboard"
+                  className="flex h-12 w-full items-center justify-center rounded-[4px] bg-[#B8FF4D] font-mono text-xs font-bold uppercase tracking-wider text-[#101014] hover:bg-[#CDFF7A] shadow-[0_0_20px_rgba(184,255,77,0.3)] transition-all"
+                >
+                  View Leaderboard ↗
+                </Link>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStep("start");
+                    setSecondsLeft(null);
+                  }}
+                  className="flex h-12 w-full items-center justify-center rounded-[4px] border border-[#2B2B38] bg-[#101014] font-mono text-xs font-bold uppercase tracking-wider text-[#F5F5F5] hover:border-[#8B7CFF] transition-colors"
+                >
+                  Play Again ↺
+                </button>
               </div>
             </div>
           </div>

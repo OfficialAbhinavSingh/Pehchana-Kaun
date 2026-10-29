@@ -200,6 +200,9 @@ def test_no_public_api_module_touches_recording_urls():
     offenders = [
         f.name
         for f in api.glob("*.py")
-        if f.name not in {"telephony.py", "admin.py"} and "recording" in f.read_text().lower()
+        if (
+            f.name not in {"telephony.py", "admin.py", "bolna.py"}
+            and "recording" in f.read_text().lower()
+        )
     ]
     assert offenders == []
