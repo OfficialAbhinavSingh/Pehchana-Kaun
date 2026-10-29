@@ -17,7 +17,7 @@ services:
     dockerfilePath: ./Dockerfile
     dockerContext: .
     # Paid plan: a free web service sleeps and Plivo would time out on the first call.
-    plan: 0.5c-512mb
+    plan: starter
     # One instance: two starting together would migrate at the same time, and the
     # browser-game rate limits are per process.
     numInstances: 1
