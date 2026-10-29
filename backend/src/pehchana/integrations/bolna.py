@@ -36,12 +36,32 @@ class BolnaClient:
         self.base_url = base_url
 
     def create_agent(self, body: dict[str, Any]) -> str:
-        """POST /v2/agent -> agent_id. TODO(WS2)"""
-        raise NotImplementedError
+        """POST /v2/agent -> the new agent's id.
+
+        201 on success, with ``{agent_id, state}`` (the field is ``state``, not
+        ``status``; the v1 ``/agent`` endpoint returns 200, this one is v2 and
+        returns 201 -- both verified against Bolna's docs, not just inferred).
+        """
+        with httpx.Client(base_url=self.base_url, timeout=_TIMEOUT) as client:
+            response = client.post(
+                "/v2/agent", json=body, headers={"Authorization": f"Bearer {self.api_key}"}
+            )
+            response.raise_for_status()
+            return str(response.json()["agent_id"])
 
     def get_execution(self, execution_id: str) -> dict[str, Any]:
-        """GET /executions/{id}. TODO(WS2)"""
-        raise NotImplementedError
+        """GET /executions/{id}: conversation time, status, telephony data.
+
+        Duration, cost, recording and transcript fields are only final once
+        ``status`` is a terminal one (see ``TERMINAL_STATUSES``); the caller decides
+        what to do with a non-terminal response, this just returns it unchanged.
+        """
+        with httpx.Client(base_url=self.base_url, timeout=_TIMEOUT) as client:
+            response = client.get(
+                f"/executions/{execution_id}", headers={"Authorization": f"Bearer {self.api_key}"}
+            )
+            response.raise_for_status()
+            return dict(response.json())
 
     def mint_web_call_session(self, agent_id: str, user_data: dict[str, Any] | None = None) -> Any:
         """POST /web-call/session for the browser SDK.
