@@ -166,7 +166,9 @@ def test_retry_after_the_call_ended_gets_busy_and_a_log_line(app_client, caplog)
 def queued(monkeypatch):
     """Call ids the pipeline was asked to process."""
     ids: list[str] = []
-    monkeypatch.setattr("pehchana.pipeline.process_call", ids.append)
+    monkeypatch.setattr(
+        "pehchana.pipeline.process_call", lambda call_id, **kwargs: ids.append(call_id)
+    )
     return ids
 
 

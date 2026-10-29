@@ -218,9 +218,39 @@ def sync_agents() -> None:
 
 
 @app.command()
-def process(call_id: str) -> None:
-    """Re-run post-call processing for one call. TODO(WS2)"""
-    raise typer.Exit(code=_todo("WS2"))
+def process(
+    call_id: str = typer.Argument(None, help="A single call to (re)process."),
+    all_failed: bool = typer.Option(
+        False, "--all-failed", help="Rerun every call that previously failed processing."
+    ),
+) -> None:
+    """(Re-)run post-call processing: Deepgram, accusation detection, status=processed."""
+    if bool(call_id) == all_failed:
+        typer.echo("error: pass exactly one of CALL_ID or --all-failed", err=True)
+        raise typer.Exit(code=2)
+
+    from pehchana import pipeline
+    from pehchana.db import get_sessionmaker
+
+    with get_sessionmaker()() as session:
+        try:
+            calls = (
+                pipeline.process_all_failed(session)
+                if all_failed
+                else [pipeline.process_call(call_id, session=session)]
+            )
+        except LookupError as e:
+            typer.echo(f"error: {e}", err=True)
+            raise typer.Exit(code=2) from e
+    if not calls:
+        typer.echo("nothing to process")
+        return
+    for call in calls:
+        ok = call.processing_error is None
+        detail = "" if ok else f": {call.processing_error}"
+        typer.echo(f"{'ok  ' if ok else 'FAIL'} {call.id}{detail}")
+    if any(c.processing_error is not None for c in calls):
+        raise typer.Exit(code=1)
 
 
 def _todo(owner: str) -> int:

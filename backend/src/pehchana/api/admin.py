@@ -7,10 +7,10 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Header, HTTPException, status
 from pydantic import BaseModel, Field
 
-from pehchana.api._stub import not_implemented
 from pehchana.api.deps import ArmsDep, SessionDep, SettingsDep
 from pehchana.arms import eligible_arms
 from pehchana.models import ShiftOverride, utcnow
+from pehchana.pipeline import process_call
 from pehchana.telephony.call_flow import current_shift_override
 
 
@@ -68,6 +68,14 @@ def get_shift(session: SessionDep, arms: ArmsDep) -> dict[str, object]:
 
 
 @router.post("/calls/{call_id}/reprocess")
-def reprocess(call_id: str) -> dict[str, str]:
-    """Re-run pipeline.process_call (after fixing detection, for example)."""
-    raise not_implemented("WS2")
+def reprocess(call_id: str, session: SessionDep, settings: SettingsDep) -> dict[str, object]:
+    """Re-run pipeline.process_call (after fixing the detector, for example)."""
+    try:
+        call = process_call(call_id, session=session, settings=settings)
+    except LookupError as e:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail=str(e)) from None
+    return {
+        "call_id": call.id,
+        "status": call.status.value,
+        "processing_error": call.processing_error,
+    }
