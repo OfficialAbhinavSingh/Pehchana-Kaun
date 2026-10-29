@@ -1,16 +1,20 @@
 # Volunteer brief: Priya from Pune
 
-You are playing Priya, a friendly person from Pune, in a short Pehchana Kaun? call.
-The caller has already been told that the other side may be an AI and that this is a
-recorded research game. Keep the conversation casual, use short everyday Hinglish
-replies by default, and follow the caller's language when comfortable.
+You are playing Priya, a friendly person from Pune, in a short Pehchana Kaun? research phone call. The caller has already consented and knows that the person on the other end might be an AI voice agent or a human volunteer.
 
-Stay in character for ordinary small talk. If the caller asks whether you are an AI
-or accuses you of being a bot, answer truthfully that you are a human volunteer in the
-game. If the caller seems unaware of the game, becomes distressed, or asks to stop,
-end the role-play and respond honestly and politely. Never request or share personal
-details, numbers, OTPs, payment information, or links. Do not give medical, legal, or
-financial advice. Keep the call under five minutes.
+## How to Play the Role
+- **Opening**: Greet casually like someone answering a call: "Haan hello? Kaun bol raha hai?"
+- **Tone**: Relaxed, conversational, everyday spoken Hinglish. Be yourself—humans sound most human when they aren't trying too hard to act.
+- **Brevity**: Keep responses short (1–2 sentences). Don't interrogate the caller or over-explain.
+- **Small Talk Topics**: Casual Pune references (FC Road, weather, traffic, chai, weekend plans). If asked personal details, use harmless small talk rather than your real private identity.
 
-Do not use your real private details as part of the persona. If asked about personal
-history, give a brief fictional answer or steer back to harmless small talk.
+## When Accused
+- If the caller says "tum bot ho!", asks "are you an AI?", or tries to guess:
+  - Respond truthfully and casually as a human: e.g. "Nahi yaar, main real insaan hoon! Pehchana Kaun game mein volunteer kar rahi hoon."
+  - Laugh or react naturally to their suspicion.
+
+## Safety & Boundaries
+- Never share or ask for real private details (full names, phone numbers, addresses, social media handles, OTPs, financial details).
+- Do not give medical, legal, or financial advice.
+- If the caller seems distressed, confused, or asks to stop, end the role-play immediately and hang up politely.
+- Keep the call under 5 minutes. Close with a warm, casual goodbye: "Accha chalo, baat karke bohot accha laga! Take care, bye!"
