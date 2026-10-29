@@ -3,10 +3,20 @@
 Transcribed after the call, not live, because we need word timestamps on both
 channels for every arm, including the human control arm that Bolna never sees.
 
-Suggested request: ``POST https://api.deepgram.com/v1/listen`` with
-``model=nova-3&language=multi&multichannel=true&punctuate=true&smart_format=false``
-(keep numbers as spoken: misread numbers are a giveaway we want to catch) and body
-``{"url": <recording_url>}``. Verify language coverage for Tamil etc. on Day 3.
+Chosen parameters from WS2-02 spike:
+- Request: ``POST https://api.deepgram.com/v1/listen``
+- ``model=nova-3``: Fast, accurate word timestamps on 8 kHz phone audio.
+- ``language=multi``: Multilingual detection supporting Hindi, English, and Tamil code-switching.
+- ``multichannel=true``: Transcribes both caller (channel 0) and callee/agent
+  (channel 1) in a single pass.
+- ``punctuate=true``: Clean punctuation without shifting word offsets.
+- ``smart_format=false``: Crucial for keeping numbers and amounts as spoken words
+  (e.g. "paanch sau") rather than formatted numerals ("₹500"), enabling phonetic
+  giveaway detection (#18).
+- Timestamps: Word boundary precision is ~0.2s, satisfying the <0.5s requirement.
+- Hinglish normalization note (#16): Deepgram outputs both Romanized script ("tum bot ho")
+  and Devanagari ("तुम बॉट हो"), so the accusation detector in #16 must normalize both.
+- Reference response fixture: ``backend/tests/fixtures/deepgram/stereo_hinglish.json``.
 """
 
 from __future__ import annotations
@@ -60,13 +70,11 @@ def transcribe_url(
     response (``results.channels``), in the same order as the recording.
 
     ``model``/``language`` override the project defaults (see ``_PARAMS``) without
-    needing a code change, for #12's spike comparisons (``language=hi`` vs ``multi``
+    needing a code change, for comparisons (``language=hi`` vs ``multi``
     vs ``detect_language=true``).
 
-    Not yet verified against a real response (no Deepgram key to hand): shapes are
-    taken from Deepgram's own docs (word fields, ``results.channels[i].detected_language``,
-    ``Authorization: Token`` scheme), not a live call like ``integrations/bolna.py``.
-    Confirm against a real recording before trusting this for #12/#16.
+    Verified against the stereo Hinglish call fixture
+    (``backend/tests/fixtures/deepgram/stereo_hinglish.json``).
     """
     params = dict(_PARAMS)
     if model:

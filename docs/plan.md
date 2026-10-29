@@ -42,7 +42,7 @@ WS1:
 WS2:
  - [x] First-agent spike for [issue #11](https://github.com/OfficialAbhinavSingh/Pehchana-Kaun/issues/11): Bolna Kalpa phone agent built with an inbound number, tested
   across real phone calls, listening notes posted, and reference export saved to `bolna/agents/reference-dashboard-export.json`.
-- [ ] Deepgram on a test recording: are word timestamps sane on 8 kHz Hinglish audio?
+- [x] Deepgram spike for [issue #12](https://github.com/OfficialAbhinavSingh/Pehchana-Kaun/issues/12): Nova-3 parameters verified (language=multi, multichannel=true, smart_format=false), word timestamps accurate to ~0.2s, and stereo Hinglish fixture saved to `backend/tests/fixtures/deepgram/stereo_hinglish.json`.
 
 WS3:
 - [ ] Draft the landing page copy + leaderboard wireframe (paper is fine).
