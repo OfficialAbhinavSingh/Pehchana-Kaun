@@ -212,9 +212,70 @@ def simulate_call(
 
 
 @app.command("sync-agents")
-def sync_agents() -> None:
-    """Create/update one Bolna agent per AI arm from bolna/agents/*.json. TODO(WS2)"""
-    raise typer.Exit(code=_todo("WS2"))
+def sync_agents(
+    dry_run: bool = typer.Option(
+        False, "--dry-run", help="Print the rendered JSON without calling Bolna."
+    ),
+) -> None:
+    """Create or update one Bolna agent per AI arm from bolna/arms.yaml."""
+    import json
+    import os
+
+    from pehchana.arms import _read_arms_file
+    from pehchana.config import REPO_ROOT, arm_env, get_settings
+    from pehchana.integrations.bolna import BolnaClient, build_agent_payload
+
+    settings = get_settings()
+    arms = [a for a in _read_arms_file(settings.arms_file) if a.get("kind") == "ai"]
+    if not arms:
+        typer.echo("no AI arms found in arms.yaml")
+        return
+
+    persona_path = REPO_ROOT / "bolna" / "personas" / "priya-pune.md"
+    accuse_path = REPO_ROOT / "bolna" / "functions" / "accuse_bot.json"
+
+    persona_prompt = persona_path.read_text(encoding="utf-8")
+    accuse_tool = json.loads(accuse_path.read_text(encoding="utf-8"))
+
+    if not dry_run and not settings.bolna_api_key:
+        typer.echo("error: BOLNA_API_KEY is not set in environment or .env", err=True)
+        raise typer.Exit(code=2)
+
+    client = BolnaClient(settings.bolna_api_key, settings.bolna_base_url)
+    current_env = arm_env()
+
+    for arm in arms:
+        arm_id = arm["id"]
+        env_var_name = str(arm.get("bolna_agent_id_env") or "")
+        existing_id = (
+            (current_env.get(env_var_name) or os.environ.get(env_var_name))
+            if env_var_name
+            else None
+        )
+
+        payload = build_agent_payload(
+            arm,
+            public_base_url=settings.public_base_url,
+            bolna_shared_secret=settings.bolna_shared_secret,
+            persona_prompt=persona_prompt,
+            accuse_tool=accuse_tool,
+        )
+
+        if dry_run:
+            typer.echo(f"=== {arm_id} ({env_var_name}={existing_id or '<unset>'}) ===")
+            typer.echo(json.dumps(payload, indent=2))
+            continue
+
+        try:
+            if existing_id:
+                client.update_agent(existing_id, payload)
+                typer.echo(f"updated {arm_id}: {existing_id}")
+            else:
+                new_id = client.create_agent(payload)
+                typer.echo(f"created {arm_id}: {env_var_name}={new_id}")
+        except Exception as e:
+            typer.echo(f"error syncing {arm_id}: {e}", err=True)
+            raise typer.Exit(code=1) from e
 
 
 @app.command()
