@@ -100,7 +100,13 @@ the matching revision and upgrades, keeping their rows. Change a model? Add a re
 
 ## Day-1 unknowns (verify with a real call, then update this doc)
 
-- [ ] Can we get an Indian inbound number on Plivo without company DLT paperwork?
+- [x] Can we get an Indian inbound number on Plivo without company DLT paperwork? No.
+      Every Indian cloud telephony provider checked (Plivo, Exotel) requires the same
+      GST + CIN/Udyam business KYC for an Indian number, and it cannot clear before the
+      31 Oct deadline. **Decision (29 Oct):** launch publicly on web-call (`/play`,
+      already built in #25/#40/#43) as the primary interface. A US Plivo number (no KYC
+      needed) backs phone-path rehearsals and the Bolna bridge spike; it is not the
+      public number. Revisit a real Indian number post-deadline if GST comes through.
 - [ ] Does Plivo `<Dial>` to a Bolna-hosted number work, and what caller id does Bolna see?
 - [ ] Which stereo channel is the caller (`CALLER_CHANNEL`)?
 - [ ] Does Deepgram `nova-3` with `language=multi` handle Hinglish + Tamil on 8 kHz call audio?
