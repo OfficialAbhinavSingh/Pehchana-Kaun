@@ -1,0 +1,453 @@
+[
+  {
+    "id": "hinglish-tum-bot-ho",
+    "text": "acha suno tum bot ho na",
+    "is_accusation": true,
+    "expected_phrase": "tum bot ho",
+    "words": [
+      {"text": "acha", "start": 10.0, "end": 10.3},
+      {"text": "suno", "start": 10.4, "end": 10.7},
+      {"text": "tum", "start": 10.8, "end": 11.0},
+      {"text": "bot", "start": 11.1, "end": 11.3},
+      {"text": "ho", "start": 11.4, "end": 11.6},
+      {"text": "na", "start": 11.7, "end": 11.9}
+    ],
+    "expected_at_s": 10.8
+  },
+  {
+    "id": "hinglish-tu-bot-hai",
+    "text": "bhai tu bot hai kya",
+    "is_accusation": true,
+    "expected_phrase": "tu bot hai",
+    "words": [
+      {"text": "bhai", "start": 5.0, "end": 5.3},
+      {"text": "tu", "start": 5.4, "end": 5.6},
+      {"text": "bot", "start": 5.7, "end": 5.9},
+      {"text": "hai", "start": 6.0, "end": 6.2},
+      {"text": "kya", "start": 6.3, "end": 6.5}
+    ],
+    "expected_at_s": 5.4
+  },
+  {
+    "id": "hinglish-aap-ai-ho",
+    "text": "mujhe lagta hai aap AI ho",
+    "is_accusation": true,
+    "expected_phrase": "aap ai ho",
+    "words": [
+      {"text": "mujhe", "start": 15.0, "end": 15.3},
+      {"text": "lagta", "start": 15.4, "end": 15.7},
+      {"text": "hai", "start": 15.8, "end": 16.0},
+      {"text": "aap", "start": 16.1, "end": 16.3},
+      {"text": "AI", "start": 16.4, "end": 16.7},
+      {"text": "ho", "start": 16.8, "end": 17.0}
+    ],
+    "expected_at_s": 16.1
+  },
+  {
+    "id": "hinglish-kya-tum-bot-ho",
+    "text": "kya tum bot ho",
+    "is_accusation": true,
+    "expected_phrase": "kya tum bot ho",
+    "words": [
+      {"text": "kya", "start": 18.0, "end": 18.2},
+      {"text": "tum", "start": 18.3, "end": 18.5},
+      {"text": "bot", "start": 18.6, "end": 18.8},
+      {"text": "ho", "start": 18.9, "end": 19.1}
+    ],
+    "expected_at_s": 18.0
+  },
+  {
+    "id": "hinglish-kya-aap-ai-hain",
+    "text": "kya aap AI hain?",
+    "is_accusation": true,
+    "expected_phrase": "kya aap ai hain",
+    "words": [
+      {"text": "kya", "start": 9.0, "end": 9.2},
+      {"text": "aap", "start": 9.3, "end": 9.5},
+      {"text": "AI", "start": 9.6, "end": 9.8},
+      {"text": "hain?", "start": 9.9, "end": 10.2}
+    ],
+    "expected_at_s": 9.0
+  },
+  {
+    "id": "hinglish-tu-robot-hai",
+    "text": "arre tu robot hai",
+    "is_accusation": true,
+    "expected_phrase": "tu robot hai",
+    "words": [
+      {"text": "arre", "start": 21.0, "end": 21.3},
+      {"text": "tu", "start": 21.4, "end": 21.6},
+      {"text": "robot", "start": 21.7, "end": 22.0},
+      {"text": "hai", "start": 22.1, "end": 22.3}
+    ],
+    "expected_at_s": 21.4
+  },
+  {
+    "id": "hinglish-bot-bol-raha-hai",
+    "text": "lagta hai bot bol raha hai",
+    "is_accusation": true,
+    "expected_phrase": "bot bol raha hai",
+    "words": [
+      {"text": "lagta", "start": 12.0, "end": 12.3},
+      {"text": "hai", "start": 12.4, "end": 12.6},
+      {"text": "bot", "start": 12.7, "end": 13.0},
+      {"text": "bol", "start": 13.1, "end": 13.3},
+      {"text": "raha", "start": 13.4, "end": 13.6},
+      {"text": "hai", "start": 13.7, "end": 13.9}
+    ],
+    "expected_at_s": 12.7
+  },
+  {
+    "id": "hinglish-yeh-ai-hai",
+    "text": "yeh AI hai pakka",
+    "is_accusation": true,
+    "expected_phrase": "yeh ai hai",
+    "words": [
+      {"text": "yeh", "start": 8.0, "end": 8.3},
+      {"text": "AI", "start": 8.4, "end": 8.7},
+      {"text": "hai", "start": 8.8, "end": 9.0},
+      {"text": "pakka", "start": 9.1, "end": 9.4}
+    ],
+    "expected_at_s": 8.0
+  },
+  {
+    "id": "hinglish-dotted-ai",
+    "text": "tum A.I. ho!",
+    "is_accusation": true,
+    "expected_phrase": "tum ai ho",
+    "words": [
+      {"text": "tum", "start": 7.5, "end": 7.8},
+      {"text": "A.I.", "start": 7.9, "end": 8.3},
+      {"text": "ho!", "start": 8.4, "end": 8.7}
+    ],
+    "expected_at_s": 7.5
+  },
+  {
+    "id": "hinglish-arre-tum-bot-ho",
+    "text": "arre tum bot ho!",
+    "is_accusation": true,
+    "expected_phrase": "arre tum bot ho",
+    "words": [
+      {"text": "arre", "start": 41.0, "end": 41.2},
+      {"text": "tum", "start": 41.2, "end": 41.4},
+      {"text": "bot", "start": 41.4, "end": 41.7},
+      {"text": "ho!", "start": 41.7, "end": 41.9}
+    ],
+    "expected_at_s": 41.0
+  },
+  {
+    "id": "english-youre-a-bot",
+    "text": "Wait, you're a bot!",
+    "is_accusation": true,
+    "expected_phrase": "youre a bot",
+    "words": [
+      {"text": "Wait,", "start": 14.0, "end": 14.2},
+      {"text": "you're", "start": 14.3, "end": 14.5},
+      {"text": "a", "start": 14.6, "end": 14.7},
+      {"text": "bot!", "start": 14.8, "end": 15.0}
+    ],
+    "expected_at_s": 14.3
+  },
+  {
+    "id": "english-are-you-a-bot",
+    "text": "Are you a bot?",
+    "is_accusation": true,
+    "expected_phrase": "are you a bot",
+    "words": [
+      {"text": "Are", "start": 25.0, "end": 25.2},
+      {"text": "you", "start": 25.3, "end": 25.5},
+      {"text": "a", "start": 25.6, "end": 25.7},
+      {"text": "bot?", "start": 25.8, "end": 26.1}
+    ],
+    "expected_at_s": 25.0
+  },
+  {
+    "id": "english-you-are-an-ai",
+    "text": "I knew it, you are an AI",
+    "is_accusation": true,
+    "expected_phrase": "you are an ai",
+    "words": [
+      {"text": "I", "start": 30.0, "end": 30.1},
+      {"text": "knew", "start": 30.2, "end": 30.4},
+      {"text": "it,", "start": 30.5, "end": 30.7},
+      {"text": "you", "start": 30.8, "end": 31.0},
+      {"text": "are", "start": 31.1, "end": 31.3},
+      {"text": "an", "start": 31.4, "end": 31.5},
+      {"text": "AI", "start": 31.6, "end": 31.9}
+    ],
+    "expected_at_s": 30.8
+  },
+  {
+    "id": "english-is-this-a-bot",
+    "text": "Is this a bot?",
+    "is_accusation": true,
+    "expected_phrase": "is this a bot",
+    "words": [
+      {"text": "Is", "start": 11.0, "end": 11.2},
+      {"text": "this", "start": 11.3, "end": 11.5},
+      {"text": "a", "start": 11.6, "end": 11.7},
+      {"text": "bot?", "start": 11.8, "end": 12.1}
+    ],
+    "expected_at_s": 11.0
+  },
+  {
+    "id": "devanagari-tum-bot-ho",
+    "text": "तुम बॉट हो",
+    "is_accusation": true,
+    "expected_phrase": "तुम बॉट हो",
+    "words": [
+      {"text": "तुम", "start": 18.2, "end": 18.4},
+      {"text": "बॉट", "start": 18.5, "end": 18.7},
+      {"text": "हो", "start": 18.7, "end": 18.9}
+    ],
+    "expected_at_s": 18.2
+  },
+  {
+    "id": "devanagari-kya-aap-bot-hain",
+    "text": "क्या आप बॉट हैं",
+    "is_accusation": true,
+    "expected_phrase": "क्या आप बॉट हैं",
+    "words": [
+      {"text": "क्या", "start": 22.0, "end": 22.3},
+      {"text": "आप", "start": 22.4, "end": 22.6},
+      {"text": "बॉट", "start": 22.7, "end": 22.9},
+      {"text": "हैं", "start": 23.0, "end": 23.2}
+    ],
+    "expected_at_s": 22.0
+  },
+  {
+    "id": "devanagari-tu-bot-hai",
+    "text": "तू बोट है",
+    "is_accusation": true,
+    "expected_phrase": "तू बोट है",
+    "words": [
+      {"text": "तू", "start": 8.2, "end": 8.4},
+      {"text": "बोट", "start": 8.5, "end": 8.7},
+      {"text": "है", "start": 8.8, "end": 9.0}
+    ],
+    "expected_at_s": 8.2
+  },
+  {
+    "id": "devanagari-yeh-ai-hai",
+    "text": "यह एआई है",
+    "is_accusation": true,
+    "expected_phrase": "यह एआई है",
+    "words": [
+      {"text": "यह", "start": 14.1, "end": 14.3},
+      {"text": "एआई", "start": 14.4, "end": 14.7},
+      {"text": "है", "start": 14.8, "end": 15.0}
+    ],
+    "expected_at_s": 14.1
+  },
+  {
+    "id": "negative-kal-bot-banaya",
+    "text": "kal maine ek bot banaya",
+    "is_accusation": false,
+    "expected_phrase": null,
+    "words": [
+      {"text": "kal", "start": 1.0, "end": 1.2},
+      {"text": "maine", "start": 1.3, "end": 1.5},
+      {"text": "ek", "start": 1.6, "end": 1.8},
+      {"text": "bot", "start": 1.9, "end": 2.1},
+      {"text": "banaya", "start": 2.2, "end": 2.5}
+    ],
+    "expected_at_s": null
+  },
+  {
+    "id": "negative-discord-bot",
+    "text": "mera discord bot crash ho gaya",
+    "is_accusation": false,
+    "expected_phrase": null,
+    "words": [
+      {"text": "mera", "start": 4.0, "end": 4.2},
+      {"text": "discord", "start": 4.3, "end": 4.6},
+      {"text": "bot", "start": 4.7, "end": 4.9},
+      {"text": "crash", "start": 5.0, "end": 5.3},
+      {"text": "ho", "start": 5.4, "end": 5.6},
+      {"text": "gaya", "start": 5.7, "end": 5.9}
+    ],
+    "expected_at_s": null
+  },
+  {
+    "id": "negative-telegram-bot",
+    "text": "humne telegram bot se flight book ki thi",
+    "is_accusation": false,
+    "expected_phrase": null,
+    "words": [
+      {"text": "humne", "start": 6.0, "end": 6.3},
+      {"text": "telegram", "start": 6.4, "end": 6.8},
+      {"text": "bot", "start": 6.9, "end": 7.1},
+      {"text": "se", "start": 7.2, "end": 7.4},
+      {"text": "flight", "start": 7.5, "end": 7.8},
+      {"text": "book", "start": 7.9, "end": 8.1},
+      {"text": "ki", "start": 8.2, "end": 8.3},
+      {"text": "thi", "start": 8.4, "end": 8.6}
+    ],
+    "expected_at_s": null
+  },
+  {
+    "id": "negative-main-bot-nahi-hoon",
+    "text": "main bot nahi hoon yaar",
+    "is_accusation": false,
+    "expected_phrase": null,
+    "words": [
+      {"text": "main", "start": 3.0, "end": 3.2},
+      {"text": "bot", "start": 3.3, "end": 3.5},
+      {"text": "nahi", "start": 3.6, "end": 3.8},
+      {"text": "hoon", "start": 3.9, "end": 4.1},
+      {"text": "yaar", "start": 4.2, "end": 4.5}
+    ],
+    "expected_at_s": null
+  },
+  {
+    "id": "negative-weather-smalltalk",
+    "text": "aaj pune mein mausam bohot accha hai",
+    "is_accusation": false,
+    "expected_phrase": null,
+    "words": [
+      {"text": "aaj", "start": 2.0, "end": 2.2},
+      {"text": "pune", "start": 2.3, "end": 2.5},
+      {"text": "mein", "start": 2.6, "end": 2.8},
+      {"text": "mausam", "start": 2.9, "end": 3.2},
+      {"text": "bohot", "start": 3.3, "end": 3.5},
+      {"text": "accha", "start": 3.6, "end": 3.8},
+      {"text": "hai", "start": 3.9, "end": 4.1}
+    ],
+    "expected_at_s": null
+  },
+  {
+    "id": "negative-college-plans",
+    "text": "tumhara college kab khatam hoga",
+    "is_accusation": false,
+    "expected_phrase": null,
+    "words": [
+      {"text": "tumhara", "start": 5.0, "end": 5.4},
+      {"text": "college", "start": 5.5, "end": 5.8},
+      {"text": "kab", "start": 5.9, "end": 6.1},
+      {"text": "khatam", "start": 6.2, "end": 6.5},
+      {"text": "hoga", "start": 6.6, "end": 6.9}
+    ],
+    "expected_at_s": null
+  },
+  {
+    "id": "negative-chai-invite",
+    "text": "chalo sham ko fc road par chai peete hain",
+    "is_accusation": false,
+    "expected_phrase": null,
+    "words": [
+      {"text": "chalo", "start": 8.0, "end": 8.3},
+      {"text": "sham", "start": 8.4, "end": 8.6},
+      {"text": "ko", "start": 8.7, "end": 8.8},
+      {"text": "fc", "start": 8.9, "end": 9.1},
+      {"text": "road", "start": 9.2, "end": 9.5},
+      {"text": "par", "start": 9.6, "end": 9.8},
+      {"text": "chai", "start": 9.9, "end": 10.1},
+      {"text": "peete", "start": 10.2, "end": 10.5},
+      {"text": "hain", "start": 10.6, "end": 10.8}
+    ],
+    "expected_at_s": null
+  },
+  {
+    "id": "negative-who-are-you",
+    "text": "aap kaun bol rahe ho",
+    "is_accusation": false,
+    "expected_phrase": null,
+    "words": [
+      {"text": "aap", "start": 1.5, "end": 1.7},
+      {"text": "kaun", "start": 1.8, "end": 2.0},
+      {"text": "bol", "start": 2.1, "end": 2.3},
+      {"text": "rahe", "start": 2.4, "end": 2.6},
+      {"text": "ho", "start": 2.7, "end": 2.9}
+    ],
+    "expected_at_s": null
+  },
+  {
+    "id": "negative-are-you-busy",
+    "text": "Are you busy right now?",
+    "is_accusation": false,
+    "expected_phrase": null,
+    "words": [
+      {"text": "Are", "start": 3.0, "end": 3.2},
+      {"text": "you", "start": 3.3, "end": 3.5},
+      {"text": "busy", "start": 3.6, "end": 3.8},
+      {"text": "right", "start": 3.9, "end": 4.1},
+      {"text": "now?", "start": 4.2, "end": 4.5}
+    ],
+    "expected_at_s": null
+  },
+  {
+    "id": "negative-trading-bot",
+    "text": "crypto trading bot banaya kya kisine",
+    "is_accusation": false,
+    "expected_phrase": null,
+    "words": [
+      {"text": "crypto", "start": 7.0, "end": 7.4},
+      {"text": "trading", "start": 7.5, "end": 7.8},
+      {"text": "bot", "start": 7.9, "end": 8.1},
+      {"text": "banaya", "start": 8.2, "end": 8.5},
+      {"text": "kya", "start": 8.6, "end": 8.8},
+      {"text": "kisine", "start": 8.9, "end": 9.2}
+    ],
+    "expected_at_s": null
+  },
+  {
+    "id": "negative-devanagari-pune-mausam",
+    "text": "पुणे में आज बहुत गर्मी है",
+    "is_accusation": false,
+    "expected_phrase": null,
+    "words": [
+      {"text": "पुणे", "start": 1.0, "end": 1.3},
+      {"text": "में", "start": 1.4, "end": 1.6},
+      {"text": "आज", "start": 1.7, "end": 1.9},
+      {"text": "बहुत", "start": 2.0, "end": 2.3},
+      {"text": "गर्मी", "start": 2.4, "end": 2.7},
+      {"text": "है", "start": 2.8, "end": 3.0}
+    ],
+    "expected_at_s": null
+  },
+  {
+    "id": "negative-devanagari-bot-kaam",
+    "text": "कल मैंने एक नया बॉट देखा",
+    "is_accusation": false,
+    "expected_phrase": null,
+    "words": [
+      {"text": "कल", "start": 2.0, "end": 2.2},
+      {"text": "मैंने", "start": 2.3, "end": 2.6},
+      {"text": "एक", "start": 2.7, "end": 2.9},
+      {"text": "नया", "start": 3.0, "end": 3.3},
+      {"text": "बॉट", "start": 3.4, "end": 3.6},
+      {"text": "देखा", "start": 3.7, "end": 4.0}
+    ],
+    "expected_at_s": null
+  },
+  {
+    "id": "negative-nice-to-talk",
+    "text": "Nice talking to you Priya",
+    "is_accusation": false,
+    "expected_phrase": null,
+    "words": [
+      {"text": "Nice", "start": 20.0, "end": 20.2},
+      {"text": "talking", "start": 20.3, "end": 20.6},
+      {"text": "to", "start": 20.7, "end": 20.8},
+      {"text": "you", "start": 20.9, "end": 21.1},
+      {"text": "Priya", "start": 21.2, "end": 21.5}
+    ],
+    "expected_at_s": null
+  },
+  {
+    "id": "negative-where-are-you-from",
+    "text": "aap kahan se baat kar rahe hain",
+    "is_accusation": false,
+    "expected_phrase": null,
+    "words": [
+      {"text": "aap", "start": 4.0, "end": 4.2},
+      {"text": "kahan", "start": 4.3, "end": 4.6},
+      {"text": "se", "start": 4.7, "end": 4.9},
+      {"text": "baat", "start": 5.0, "end": 5.2},
+      {"text": "kar", "start": 5.3, "end": 5.5},
+      {"text": "rahe", "start": 5.6, "end": 5.8},
+      {"text": "hain", "start": 5.9, "end": 6.1}
+    ],
+    "expected_at_s": null
+  }
+]

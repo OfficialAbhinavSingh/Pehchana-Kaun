@@ -166,16 +166,31 @@ def test_deepgram_failure_is_caught_not_raised(fake_detector):
 
 
 @respx.mock
-def test_missing_detector_fails_cleanly_not_silently():
-    """Without the fake_detector monkeypatch, detect_accusations is the real (still
-    TODO) one: processing must fail loudly into processing_error, not pretend to
-    succeed with zero accusations."""
+def test_detector_failure_fails_cleanly_not_silently(monkeypatch):
+    """If detect_accusations raises an error, processing must fail loudly into
+    processing_error rather than silently producing a processed call."""
+
+    def _broken_detector(_words):
+        raise RuntimeError("detector crashed")
+
+    monkeypatch.setattr(pipeline, "detect_accusations", _broken_detector)
     respx.post(URL).mock(return_value=httpx.Response(200, json=RESPONSE))
     call = make_call()
     with db.get_sessionmaker()() as s:
         result = pipeline.process_call(call.id, session=s, settings=SETTINGS)
     assert result.status == CallStatus.ENDED
-    assert result.processing_error is not None and "NotImplementedError" in result.processing_error
+    assert result.processing_error is not None and "RuntimeError" in result.processing_error
+
+
+@respx.mock
+def test_real_detector_runs_end_to_end_without_mocks():
+    """Runs process_call with the real detect_accusations implementation."""
+    respx.post(URL).mock(return_value=httpx.Response(200, json=RESPONSE))
+    call = make_call()
+    with db.get_sessionmaker()() as s:
+        result = pipeline.process_call(call.id, session=s, settings=SETTINGS)
+    assert result.status == CallStatus.PROCESSED
+    assert result.processing_error is None
 
 
 def test_unknown_call_id_raises_lookup_error(fake_detector):
