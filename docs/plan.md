@@ -59,7 +59,7 @@ WS1 (`arms.py`, `telephony/plivo.py`, `api/telephony.py`, `api/admin.py`):
 - [ ] Deploy backend to a stable HTTPS URL + Postgres; Alembic initial migration.
 
 WS2 (`integrations/`, `detection.py`, `pipeline.py`, `tagging.py`, `api/bolna.py`, `bolna/`):
-- [ ] Persona prompt `bolna/personas/priya-pune.md` + volunteer brief (same persona).
+- [x] Persona prompt `bolna/personas/priya-pune.md` + volunteer brief (same persona) tuned and aligned (#13).
 - [ ] `pk sync-agents`: one Bolna agent per AI arm from the template.
 - [ ] `/bolna/fn/accuse` (auth, log, reveal line) and `/bolna/webhook` (idempotent).
 - [ ] Deepgram client, accusation detector (phrase list from real test calls), pipeline.
