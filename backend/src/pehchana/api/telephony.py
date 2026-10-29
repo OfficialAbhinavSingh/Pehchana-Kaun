@@ -52,10 +52,13 @@ def _mismatch(error: call_flow.CallMismatch) -> HTTPException:
 
 
 def _process(call_id: str) -> None:
+    # A background task, run after the webhook response is already sent: it needs its
+    # own database session, not the request's.
+    from pehchana.db import get_sessionmaker
+
     try:
-        pipeline.process_call(call_id)
-    except NotImplementedError:
-        log.warning("pipeline not implemented yet; call %s left unprocessed", call_id)
+        with get_sessionmaker()() as session:
+            pipeline.process_call(call_id, session=session)
     except Exception:
         log.exception("processing failed for call %s", call_id)
 
