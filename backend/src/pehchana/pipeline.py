@@ -98,18 +98,19 @@ def process_call(call_id: str, *, session: Session, settings: Settings | None = 
             )
         )
 
-    from pehchana import tagging
-
-    try:
-        tagging.tag_call(call.id, session=session)
-        tagging.tag_call_llm(call.id, session=session, settings=settings)
-    except Exception as e:
-        # Tagging failure must never fail the call processing
-        log.warning("Tagging step encountered non-fatal error for %s: %s", call.id, e)
-
     call.processing_error = None
     call.status = CallStatus.PROCESSED
     call.ended_at = call.ended_at or utcnow()
+    session.flush()
+
+    try:
+        from pehchana import tagging
+
+        tagging.tag_call(call.id, session=session)
+        tagging.tag_call_llm(call.id, session=session, settings=settings)
+    except Exception:
+        log.exception("tagging failed for call %s", call_id)
+
     session.commit()
     return call
 
