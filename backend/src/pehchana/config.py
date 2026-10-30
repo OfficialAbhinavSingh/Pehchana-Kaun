@@ -132,6 +132,8 @@ class Settings(BaseSettings):
             warnings.append("CONSENT_AUDIO_URL is unset: callers hear the text-to-speech notice")
         if not self.bolna_api_key:
             warnings.append("BOLNA_API_KEY is unset: browser games cannot start")
+        if not self.deepgram_api_key:
+            warnings.append("DEEPGRAM_API_KEY is unset: calls cannot be transcribed or scored")
         return warnings
 
 
