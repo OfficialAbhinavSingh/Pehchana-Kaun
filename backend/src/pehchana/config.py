@@ -71,9 +71,11 @@ class Settings(BaseSettings):
     deepgram_model: str = "nova-3"
     deepgram_language: str = "multi"
 
-    # Claude (post-call giveaway tagging)
+    # Claude (post-call giveaway tagging; free fallbacks: Groq or Gemini)
     anthropic_api_key: str = ""
     tagger_model: str = "claude-opus-5"
+    groq_api_key: str = ""
+    gemini_api_key: str = ""
 
     # Leaderboard
     reveal_vendors: bool = False

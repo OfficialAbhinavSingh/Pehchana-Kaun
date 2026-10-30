@@ -104,9 +104,10 @@ def process_call(call_id: str, *, session: Session, settings: Settings | None = 
     session.flush()
 
     try:
-        from pehchana.tagging import tag_call
+        from pehchana import tagging
 
-        tag_call(call.id, session=session)
+        tagging.tag_call(call.id, session=session)
+        tagging.tag_call_llm(call.id, session=session, settings=settings)
     except Exception:
         log.exception("tagging failed for call %s", call_id)
 
