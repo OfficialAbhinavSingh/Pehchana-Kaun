@@ -106,6 +106,18 @@ class BolnaClient:
             return response.json()
 
 
+# Voice selection per TTS provider, keyed by provider id. arms.yaml names the model but
+# not the voice; these are the voices verified live against the Bolna API (buildathon
+# session notes). Bolna's Sarvam models use a colon (e.g. "bulbul:v3"), not the hyphen
+# form arms.yaml writes for readability, so that is also translated here.
+_VOICE_DEFAULTS: dict[str, dict[str, str]] = {
+    "kalpa": {"voice": "Kiara", "voice_id": "5e0c5704-590f-483b-b291-00a2415cb67e"},
+    "cartesia": {"voice": "Indian Lady", "voice_id": "3b554273-4299-48b9-9aaf-eefd438e3941"},
+    "sarvam": {"voice": "Priya", "voice_id": "priya"},
+}
+_SARVAM_MODEL_ALIASES = {"bulbul-v3": "bulbul:v3", "saaras-v4": "saaras:v4"}
+
+
 def build_agent_payload(
     arm: dict[str, Any],
     *,
@@ -123,24 +135,34 @@ def build_agent_payload(
     # Synthesizer config
     synth_provider = tts.get("provider", "kalpa")
     synth_model = tts.get("model", "kalpa-tts-1")
-    synth_config: dict[str, Any] = {"model": synth_model}
-    if synth_provider == "kalpa":
-        synth_config["voice"] = "Kiara"
+    if synth_provider == "sarvam":
+        synth_model = _SARVAM_MODEL_ALIASES.get(synth_model, synth_model)
+    synth_config: dict[str, Any] = {"model": synth_model, **_VOICE_DEFAULTS.get(synth_provider, {})}
+    if synth_provider == "sarvam":
+        synth_config["language"] = stt.get("language") or "hi"
 
     # Transcriber config
     stt_provider = stt.get("provider", "deepgram")
     stt_model = stt.get("model", "nova-3")
+    if stt_provider == "sarvam":
+        stt_model = _SARVAM_MODEL_ALIASES.get(stt_model, stt_model)
     trans_config: dict[str, Any] = {"model": stt_model}
     if stt.get("language"):
         trans_config["language"] = stt["language"]
 
-    # Tool config with substituted URLs and secrets
+    # accuse_tool/bolna_shared_secret are accepted for the caller's convenience (the
+    # accuse_bot function needs PUBLIC_BASE_URL and BOLNA_SHARED_SECRET substituted
+    # before anyone can wire it in), but api_tools is intentionally left out below:
+    # Bolna's api_tools/tools_params schema 400s on every shape tried against the live
+    # API this session (undocumented, reproducibly broken on malformed input), and the
+    # known-working Kalpa agent itself runs with api_tools: null. Wire it in once WS2
+    # confirms the real schema; until then this must not block agent creation.
     import json
 
     tool_str = json.dumps(accuse_tool)
     tool_str = tool_str.replace("${PUBLIC_BASE_URL}", public_base_url.rstrip("/"))
     tool_str = tool_str.replace("${BOLNA_SHARED_SECRET}", bolna_shared_secret)
-    resolved_tool = json.loads(tool_str)
+    json.loads(tool_str)  # validated but not sent; see note above
 
     return {
         "agent_config": {
@@ -161,8 +183,8 @@ def build_agent_payload(
                             "llm_config": {
                                 "provider": "openai",
                                 "model": "gpt-4.1-mini",
-                                "max_tokens": 120,
-                                "temperature": 0.7,
+                                "max_tokens": 250,
+                                "temperature": 0.2,
                             },
                         },
                         "synthesizer": {
@@ -177,7 +199,6 @@ def build_agent_payload(
                         },
                         "input": {"provider": "plivo", "format": "wav"},
                         "output": {"provider": "plivo", "format": "wav"},
-                        "api_tools": {"tools": [resolved_tool]},
                     },
                     "task_config": {
                         "call_terminate": 300,

@@ -158,17 +158,63 @@ def test_build_agent_payload_renders_toolchain_and_substitutions():
     assert task["tools_config"]["synthesizer"]["provider"] == "kalpa"
     assert task["tools_config"]["synthesizer"]["provider_config"]["model"] == "kalpa-tts-1"
     assert task["tools_config"]["synthesizer"]["provider_config"]["voice"] == "Kiara"
+    assert (
+        task["tools_config"]["synthesizer"]["provider_config"]["voice_id"]
+        == "5e0c5704-590f-483b-b291-00a2415cb67e"
+    )
     assert task["tools_config"]["transcriber"]["provider"] == "deepgram"
     assert task["tools_config"]["transcriber"]["provider_config"]["model"] == "nova-3"
     assert task["tools_config"]["transcriber"]["provider_config"]["language"] == "multi"
 
-    # API tools substituted
-    resolved_tool = task["tools_config"]["api_tools"]["tools"][0]
-    assert resolved_tool["url"] == "https://api.example.com/bolna/fn/accuse"
-    assert resolved_tool["token"] == "secret-123"
+    # api_tools is intentionally omitted (Bolna's tools_params schema 400s on every
+    # shape tried live; shipping it would break agent creation). Not present in the
+    # payload until WS2 confirms the real schema.
+    assert "api_tools" not in task["tools_config"]
 
     # Persona
     assert payload["agent_prompts"]["task_1"]["system_prompt"] == "You are Priya"
+
+
+def test_build_agent_payload_sets_voice_for_cartesia_and_sarvam():
+    from pehchana.integrations.bolna import build_agent_payload
+
+    base_kwargs = dict(
+        public_base_url="https://api.example.com",
+        bolna_shared_secret="secret-123",
+        persona_prompt="You are Priya",
+        accuse_tool={"name": "accuse_bot", "url": "x", "token": "y"},
+    )
+
+    cartesia = build_agent_payload(
+        {
+            "id": "cartesia",
+            "stack": {
+                "tts": {"provider": "cartesia", "model": "sonic-3.6"},
+                "stt": {"provider": "deepgram", "model": "nova-3", "language": "multi"},
+            },
+        },
+        **base_kwargs,
+    )
+    synth = cartesia["agent_config"]["tasks"][0]["tools_config"]["synthesizer"]["provider_config"]
+    assert synth["voice"] == "Indian Lady"
+    assert synth["voice_id"] == "3b554273-4299-48b9-9aaf-eefd438e3941"
+
+    sarvam = build_agent_payload(
+        {
+            "id": "sarvam",
+            "stack": {
+                "tts": {"provider": "sarvam", "model": "bulbul-v3"},
+                "stt": {"provider": "sarvam", "model": "saaras-v4"},
+            },
+        },
+        **base_kwargs,
+    )
+    task = sarvam["agent_config"]["tasks"][0]["tools_config"]
+    # Bolna's Sarvam models use a colon, not the hyphen form arms.yaml writes.
+    assert task["synthesizer"]["provider_config"]["model"] == "bulbul:v3"
+    assert task["synthesizer"]["provider_config"]["voice"] == "Priya"
+    assert task["synthesizer"]["provider_config"]["voice_id"] == "priya"
+    assert task["transcriber"]["provider_config"]["model"] == "saaras:v4"
 
 
 # --- CLI sync-agents -----------------------------------------------------------------
