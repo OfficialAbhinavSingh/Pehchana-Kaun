@@ -16,21 +16,29 @@ Default model is ``TAGGER_MODEL`` (``claude-opus-5``); server-side refusal fallb
 
 from __future__ import annotations
 
+import logging
 import re
 from enum import StrEnum
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
+from pydantic import BaseModel, Field
 from sqlalchemy import delete
 from sqlalchemy.orm import Session
 
 from pehchana.detection import Word
 from pehchana.models import Call, Giveaway
 
+if TYPE_CHECKING:
+    from pehchana.config import Settings
+
+log = logging.getLogger(__name__)
+
 # Dead air between the caller's last word and the arm's next one, in the window.
 SLOW_REPLY_THRESHOLD_S = 1.5
 # How far back from the first accusation (or the call's end, if none) to look.
 WINDOW_S = 30.0
 METHOD = "heuristic"
+METHOD_LLM = "llm"
 
 _NUMBER_WORDS = frozenset(
     [
@@ -208,3 +216,243 @@ def _row(call_id: str, tag: GiveawayTag, evidence: str) -> Giveaway:
     return Giveaway(
         call_id=call_id, tag=tag.value, method=METHOD, evidence=evidence, confidence=1.0
     )
+
+
+class LLMGiveawayItem(BaseModel):
+    tag: GiveawayTag = Field(description="The giveaway category.")
+    evidence: str = Field(description="Verbatim quote from the agent that gave it away.")
+    confidence: float = Field(default=1.0, description="Confidence score between 0.0 and 1.0.")
+
+
+class LLMTaggerResponse(BaseModel):
+    giveaways: list[LLMGiveawayItem] = Field(
+        default_factory=list, description="List of giveaways identified in the window."
+    )
+
+
+def format_window_dialogue(
+    transcript: list[dict[str, Any]], caller_index: int, start: float, end: float
+) -> str:
+    """Format dialogue turns between caller and arm in the 30s window before accusation."""
+    arm_index = 1 - caller_index
+    caller_words = _in_window(_channel_words(transcript, caller_index), start, end)
+    arm_words = _in_window(_channel_words(transcript, arm_index), start, end)
+    merged = sorted(
+        [("Caller", w) for w in caller_words] + [("Agent", w) for w in arm_words],
+        key=lambda t: t[1].start,
+    )
+    if not merged:
+        return ""
+
+    turns: list[str] = []
+    current_speaker = merged[0][0]
+    current_turn: list[str] = []
+    turn_start = merged[0][1].start
+
+    for speaker, word in merged:
+        if speaker != current_speaker:
+            turns.append(f"[{turn_start:.1f}s] {current_speaker}: {' '.join(current_turn)}")
+            current_speaker = speaker
+            current_turn = [word.text]
+            turn_start = word.start
+        else:
+            current_turn.append(word.text)
+
+    if current_turn:
+        turns.append(f"[{turn_start:.1f}s] {current_speaker}: {' '.join(current_turn)}")
+
+    return "\n".join(turns)
+
+
+_LLM_PROMPT = """You are analyzing a phone call from the "Pehchana Kaun?" Turing test.
+A caller accused the other side of being an AI bot.
+
+Review the dialogue snippet leading up to the accusation (seconds {start:.1f} to {end:.1f}).
+Identify any conversational giveaways that revealed the agent is an AI:
+- flat_emotion: voice or tone lacked natural human emotion, humor, or empathy.
+- too_perfect: unnaturally polite, devoid of natural pauses or hesitations.
+- pronunciation: awkward or incorrect pronunciation of Indian names/places/words.
+- content: encyclopedic, scripted, repetitive phrases, or robotic statements.
+- wrong_language: failed to follow language code-switching.
+- other: any other clear conversational giveaway.
+
+Rules:
+1. Provide a verbatim quote in evidence for each identified giveaway.
+2. If nothing clearly gave the agent away other than caller suspicion, return an empty list.
+"""
+
+
+def tag_call_llm(
+    call_id: str,
+    *,
+    session: Session,
+    client: Any | None = None,
+    settings: Settings | None = None,
+) -> list[Giveaway]:
+    """Tag subtler conversational giveaways using Claude (or free Groq/Gemini fallback).
+
+    Idempotent: replaces this call's method='llm' rows.
+    Only runs if the call was accused (first_accusation_s is not None).
+    Never crashes processing on API errors or missing credentials.
+    """
+    from pehchana.config import get_settings
+
+    active_settings = settings or get_settings()
+    call = session.get(Call, call_id)
+    if call is None:
+        raise LookupError(f"no such call: {call_id}")
+    if not call.transcript:
+        raise ValueError(f"call {call_id} has no transcript yet (not processed?)")
+
+    # Only run on accused calls
+    if call.first_accusation_s is None:
+        return []
+
+    caller_index = call.recording_caller_channel if call.recording_caller_channel is not None else 0
+    window_end = call.first_accusation_s
+    window_start = max(0.0, window_end - WINDOW_S)
+
+    dialogue = format_window_dialogue(call.transcript, caller_index, window_start, window_end)
+    if not dialogue:
+        return []
+
+    items: list[LLMGiveawayItem] = []
+
+    # 1. Custom or injected client
+    if client is not None:
+        try:
+            resp = client.beta.messages.parse(
+                model=active_settings.tagger_model,
+                max_tokens=500,
+                betas=["server-side-fallback-2026-07-01"],
+                fallbacks="default",
+                messages=[
+                    {
+                        "role": "user",
+                        "content": (
+                            _LLM_PROMPT.format(start=window_start, end=window_end)
+                            + f"\n\nTranscript:\n{dialogue}"
+                        ),
+                    }
+                ],
+                output_format=LLMTaggerResponse,
+            )
+            if hasattr(resp, "parsed_output") and resp.parsed_output:
+                items = resp.parsed_output.giveaways
+        except Exception as e:
+            log.warning("LLM tagging failed with custom client for %s: %s", call_id, e)
+            return []
+
+    # 2. Anthropic API
+    elif active_settings.anthropic_api_key:
+        try:
+            import anthropic
+
+            anth_client = anthropic.Anthropic(api_key=active_settings.anthropic_api_key)
+            resp = anth_client.beta.messages.parse(
+                model=active_settings.tagger_model,
+                max_tokens=500,
+                betas=["server-side-fallback-2026-07-01"],
+                fallbacks="default",
+                messages=[
+                    {
+                        "role": "user",
+                        "content": (
+                            _LLM_PROMPT.format(start=window_start, end=window_end)
+                            + f"\n\nTranscript:\n{dialogue}"
+                        ),
+                    }
+                ],
+                output_format=LLMTaggerResponse,
+            )
+            if hasattr(resp, "parsed_output") and resp.parsed_output:
+                items = resp.parsed_output.giveaways
+        except Exception as e:
+            log.warning("Anthropic tagging failed for call %s: %s", call_id, e)
+            return []
+
+    # 3. Free Groq fallback (if GROQ_API_KEY is configured)
+    elif getattr(active_settings, "groq_api_key", None):
+        try:
+            import json
+
+            import httpx
+
+            groq_key = active_settings.groq_api_key
+            schema_json = json.dumps(LLMTaggerResponse.model_json_schema())
+            prompt_content = (
+                _LLM_PROMPT.format(start=window_start, end=window_end)
+                + f"\n\nTranscript:\n{dialogue}"
+                + f"\nRespond strictly with JSON adhering to schema: {schema_json}"
+            )
+            with httpx.Client(timeout=15.0) as http_client:
+                r = http_client.post(
+                    "https://api.groq.com/openai/v1/chat/completions",
+                    headers={"Authorization": f"Bearer {groq_key}"},
+                    json={
+                        "model": "llama-3.3-70b-versatile",
+                        "messages": [{"role": "user", "content": prompt_content}],
+                        "response_format": {"type": "json_object"},
+                    },
+                )
+                r.raise_for_status()
+                parsed = LLMTaggerResponse.model_validate_json(
+                    r.json()["choices"][0]["message"]["content"]
+                )
+                items = parsed.giveaways
+        except Exception as e:
+            log.warning("Groq tagging fallback failed for %s: %s", call_id, e)
+            return []
+
+    # 4. Free Gemini fallback (if GEMINI_API_KEY is configured)
+    elif getattr(active_settings, "gemini_api_key", None):
+        try:
+            import json
+
+            import httpx
+
+            gemini_key = active_settings.gemini_api_key
+            prompt_content = (
+                _LLM_PROMPT.format(start=window_start, end=window_end)
+                + f"\n\nTranscript:\n{dialogue}"
+            )
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={gemini_key}"
+            with httpx.Client(timeout=15.0) as http_client:
+                r = http_client.post(
+                    url,
+                    json={
+                        "contents": [{"parts": [{"text": prompt_content}]}],
+                        "generationConfig": {
+                            "response_mime_type": "application/json",
+                            "response_schema": LLMTaggerResponse.model_json_schema(),
+                        },
+                    },
+                )
+                r.raise_for_status()
+                txt = r.json()["candidates"][0]["content"]["parts"][0]["text"]
+                parsed = LLMTaggerResponse.model_validate_json(txt)
+                items = parsed.giveaways
+        except Exception as e:
+            log.warning("Gemini tagging fallback failed for %s: %s", call_id, e)
+            return []
+    else:
+        log.info("No LLM key configured (Anthropic, Groq, Gemini); skipping LLM tagging.")
+        return []
+
+    rows: list[Giveaway] = [
+        Giveaway(
+            call_id=call_id,
+            tag=it.tag.value,
+            method=METHOD_LLM,
+            evidence=it.evidence,
+            confidence=it.confidence,
+        )
+        for it in items
+    ]
+
+    session.execute(
+        delete(Giveaway).where(Giveaway.call_id == call_id, Giveaway.method == METHOD_LLM)
+    )
+    session.add_all(rows)
+    session.commit()
+    return rows

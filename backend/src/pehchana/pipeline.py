@@ -98,7 +98,14 @@ def process_call(call_id: str, *, session: Session, settings: Settings | None = 
             )
         )
 
-    # tagging.tag_call(call) once #18 ships; feature-flagged out until then.
+    from pehchana import tagging
+
+    try:
+        tagging.tag_call(call.id, session=session)
+        tagging.tag_call_llm(call.id, session=session, settings=settings)
+    except Exception as e:
+        # Tagging failure must never fail the call processing
+        log.warning("Tagging step encountered non-fatal error for %s: %s", call.id, e)
 
     call.processing_error = None
     call.status = CallStatus.PROCESSED

@@ -14,7 +14,13 @@ from pehchana.models import (
     Giveaway,
     Source,
 )
-from pehchana.tagging import GiveawayTag, tag_call
+from pehchana.tagging import (
+    GiveawayTag,
+    LLMGiveawayItem,
+    LLMTaggerResponse,
+    tag_call,
+    tag_call_llm,
+)
 
 
 def make_call(
@@ -238,3 +244,135 @@ def test_no_transcript_raises_value_error(client):
 def test_unknown_call_id_raises_lookup_error(client):
     with db.get_sessionmaker()() as s, pytest.raises(LookupError):
         tag_call("no-such-call", session=s)
+
+
+# --- LLM Tagging (Issue #19) ----------------------------------------------------------
+
+
+class FakeParsedResponse:
+    def __init__(self, giveaways):
+        self.parsed_output = LLMTaggerResponse(giveaways=giveaways)
+        self.stop_reason = "end_turn"
+
+
+class FakeAnthropicClient:
+    def __init__(self, giveaways=None, raises=False):
+        self.giveaways = giveaways or []
+        self.raises = raises
+        self.beta = self
+        self.messages = self
+
+    def parse(self, **kwargs):
+        if self.raises:
+            raise RuntimeError("API rate limited or down")
+        return FakeParsedResponse(self.giveaways)
+
+
+def test_llm_tagging_skips_non_accused_call():
+    transcript = [
+        {"channel": 0, "language": "hi", "words": words(("hello", 1.0, 1.5))},
+        {"channel": 1, "language": "hi", "words": words(("haan", 2.0, 2.5))},
+    ]
+    # No accusation
+    call = make_call(transcript=transcript, accused_at=None)
+    fake_client = FakeAnthropicClient(
+        [LLMGiveawayItem(tag=GiveawayTag.FLAT_EMOTION, evidence="haan")]
+    )
+
+    with db.get_sessionmaker()() as s:
+        rows = tag_call_llm(call.id, session=s, client=fake_client)
+    assert rows == []
+
+
+def test_llm_tagging_stores_giveaways_with_mocked_client():
+    transcript = [
+        {"channel": 0, "language": "hi", "words": words(("hello", 1.0, 1.5))},
+        {
+            "channel": 1,
+            "language": "hi",
+            "words": words(("aur", 2.0, 2.2), ("kuch", 2.3, 2.5), ("jaan", 2.6, 2.8)),
+        },
+    ]
+    call = make_call(transcript=transcript, accused_at=10.0)
+    fake_client = FakeAnthropicClient(
+        [
+            LLMGiveawayItem(tag=GiveawayTag.CONTENT, evidence="aur kuch jaan", confidence=0.95),
+            LLMGiveawayItem(tag=GiveawayTag.FLAT_EMOTION, evidence="aur kuch", confidence=0.8),
+        ]
+    )
+
+    with db.get_sessionmaker()() as s:
+        rows = tag_call_llm(call.id, session=s, client=fake_client)
+
+    assert len(rows) == 2
+    assert {r.tag for r in rows} == {"content", "flat_emotion"}
+    assert all(r.method == "llm" for r in rows)
+    assert any(r.evidence == "aur kuch jaan" for r in rows)
+
+
+def test_llm_tagging_idempotent_replaces_only_llm_rows():
+    transcript = [
+        {"channel": 0, "language": "hi", "words": words(("hello", 1.0, 1.5))},
+        {"channel": 1, "language": "hi", "words": words(("haan", 2.0, 2.5))},
+    ]
+    call = make_call(transcript=transcript, accused_at=10.0)
+
+    # First add a heuristic giveaway
+    with db.get_sessionmaker()() as s:
+        s.add(
+            Giveaway(
+                call_id=call.id,
+                tag="slow_reply",
+                method="heuristic",
+                evidence="pause",
+                confidence=1.0,
+            )
+        )
+        s.commit()
+
+    fake_client1 = FakeAnthropicClient(
+        [LLMGiveawayItem(tag=GiveawayTag.TOO_PERFECT, evidence="haan")]
+    )
+    with db.get_sessionmaker()() as s:
+        tag_call_llm(call.id, session=s, client=fake_client1)
+
+    fake_client2 = FakeAnthropicClient(
+        [LLMGiveawayItem(tag=GiveawayTag.FLAT_EMOTION, evidence="haan")]
+    )
+    with db.get_sessionmaker()() as s:
+        tag_call_llm(call.id, session=s, client=fake_client2)
+
+    with db.get_sessionmaker()() as s:
+        all_rows = s.query(Giveaway).filter(Giveaway.call_id == call.id).all()
+        methods = {r.method: r.tag for r in all_rows}
+        assert "heuristic" in methods and methods["heuristic"] == "slow_reply"
+        assert "llm" in methods and methods["llm"] == "flat_emotion"
+        assert len([r for r in all_rows if r.method == "llm"]) == 1
+
+
+def test_llm_tagging_failure_never_crashes():
+    transcript = [
+        {"channel": 0, "language": "hi", "words": words(("hello", 1.0, 1.5))},
+        {"channel": 1, "language": "hi", "words": words(("haan", 2.0, 2.5))},
+    ]
+    call = make_call(transcript=transcript, accused_at=10.0)
+    failing_client = FakeAnthropicClient(raises=True)
+
+    with db.get_sessionmaker()() as s:
+        result = tag_call_llm(call.id, session=s, client=failing_client)
+    assert result == []
+
+
+def test_llm_tagging_missing_key_gracefully_skips(monkeypatch):
+    from pehchana.config import Settings
+
+    transcript = [
+        {"channel": 0, "language": "hi", "words": words(("hello", 1.0, 1.5))},
+        {"channel": 1, "language": "hi", "words": words(("haan", 2.0, 2.5))},
+    ]
+    call = make_call(transcript=transcript, accused_at=10.0)
+    empty_settings = Settings(anthropic_api_key="", groq_api_key="", gemini_api_key="")
+
+    with db.get_sessionmaker()() as s:
+        result = tag_call_llm(call.id, session=s, settings=empty_settings)
+    assert result == []

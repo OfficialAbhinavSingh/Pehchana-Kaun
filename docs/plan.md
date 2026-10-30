@@ -63,7 +63,7 @@ WS2 (`integrations/`, `detection.py`, `pipeline.py`, `tagging.py`, `api/bolna.py
 - [ ] `pk sync-agents`: one Bolna agent per AI arm from the template.
 - [ ] `/bolna/fn/accuse` (auth, log, reveal line) and `/bolna/webhook` (idempotent).
 - [ ] Deepgram client, accusation detector (phrase list from real test calls), pipeline.
-- [ ] Heuristic giveaway tags first; Claude tagging after the pipeline is stable.
+- [x] Heuristic giveaway tags (#18) and Claude structured output tagging (#19) with free Groq/Gemini fallbacks.
 
 WS3 (`scoring.py`, `api/leaderboard.py`, `api/webcall.py`, `web/`):
 - [ ] Kaplan-Meier + `arm_stats` with specs passing; per-language breakdown.
