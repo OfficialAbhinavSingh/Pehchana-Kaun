@@ -70,7 +70,12 @@ def process_call(call_id: str, *, session: Session, settings: Settings | None = 
     caller_index = call.recording_caller_channel if call.recording_caller_channel is not None else 0
 
     try:
-        transcription = transcribe_url(call.recording_url, api_key=settings.deepgram_api_key)
+        transcription = transcribe_url(
+            call.recording_url,
+            api_key=settings.deepgram_api_key,
+            model=settings.deepgram_model,
+            language=settings.deepgram_language,
+        )
         caller = next((c for c in transcription.channels if c.index == caller_index), None)
         if caller is None:
             raise ProcessingError(f"no channel {caller_index} in the Deepgram response")

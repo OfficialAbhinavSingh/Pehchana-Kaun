@@ -96,7 +96,7 @@ def fake_detector(monkeypatch):
 
 @respx.mock
 def test_processes_a_call_end_to_end(fake_detector):
-    respx.post(URL).mock(return_value=httpx.Response(200, json=RESPONSE))
+    route = respx.post(URL).mock(return_value=httpx.Response(200, json=RESPONSE))
     call = make_call()
     with db.get_sessionmaker()() as s:
         result = pipeline.process_call(call.id, session=s, settings=SETTINGS)
@@ -105,11 +105,34 @@ def test_processes_a_call_end_to_end(fake_detector):
     assert result.processing_error is None
     assert result.language == "hi"  # channel 0 = caller
     assert result.transcript is not None and len(result.transcript) == 2
+    assert route.called
+    req = route.calls.last.request
+    assert req.url.params["model"] == "nova-3"
+    assert req.url.params["language"] == "multi"
 
     with db.get_sessionmaker()() as s:
         (acc,) = s.query(Accusation).filter(Accusation.call_id == call.id).all()
         assert acc.source == AccusationSource.TRANSCRIPT
         assert acc.at_s == 10.0 and acc.phrase == "tum bot ho"
+
+
+@respx.mock
+def test_processes_a_call_forwards_custom_model_and_language(fake_detector):
+    route = respx.post(URL).mock(return_value=httpx.Response(200, json=RESPONSE))
+    call = make_call()
+    custom_settings = Settings(
+        deepgram_api_key="dg-secret",
+        deepgram_model="nova-2",
+        deepgram_language="hi",
+    )
+    with db.get_sessionmaker()() as s:
+        result = pipeline.process_call(call.id, session=s, settings=custom_settings)
+
+    assert result.status == CallStatus.PROCESSED
+    assert route.called
+    req = route.calls.last.request
+    assert req.url.params["model"] == "nova-2"
+    assert req.url.params["language"] == "hi"
 
 
 @respx.mock
