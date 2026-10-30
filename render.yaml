@@ -76,3 +76,7 @@ services:
         sync: false
       - key: ANTHROPIC_API_KEY
         sync: false
+      - key: GROQ_API_KEY # free-tier fallback for LLM tagging when ANTHROPIC_API_KEY is unset
+        sync: false
+      - key: GEMINI_API_KEY # second free-tier fallback for LLM tagging
+        sync: false
