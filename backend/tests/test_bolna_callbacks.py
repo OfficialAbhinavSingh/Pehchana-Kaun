@@ -255,3 +255,82 @@ def test_webhook_refuses_an_unlisted_source_ip_when_enforced(bolna_with_allowlis
         "/bolna/webhook", json=EXECUTION, headers={"x-bolna-webhook-secret": "shh"}
     )
     assert r.status_code == 403
+
+
+# --- Direct Bolna phone & web calls (E2E Telephony) -----------------------------------
+
+
+def test_direct_inbound_phone_call_auto_creates_and_ends_call(bolna, monkeypatch):
+    processed = []
+    monkeypatch.setattr(
+        "pehchana.pipeline.process_call", lambda call_id, **kw: processed.append(call_id)
+    )
+
+    payload = dict(EXECUTION)
+    payload["id"] = "direct-call-exec-1"
+    payload["user_number"] = "+919876543210"
+    payload["telephony_data"] = dict(EXECUTION["telephony_data"])
+    payload["telephony_data"]["from_number"] = "+919876543210"
+    payload["telephony_data"]["recording_url"] = "https://api.bolna.ai/recordings/call/direct.mp3"
+
+    r = bolna.post("/bolna/webhook", json=payload, headers={"x-bolna-webhook-secret": "shh"})
+    assert r.status_code == 200
+    call_id = r.json().get("attached")
+    assert call_id is not None
+
+    call = get_call(call_id)
+    assert call.channel == Channel.PHONE
+    assert call.status == CallStatus.ENDED
+    assert call.duration_s == 37.0
+    assert call.recording_url == "https://api.bolna.ai/recordings/call/direct.mp3"
+    assert call.bolna_execution_id == "direct-call-exec-1"
+    assert processed == [call_id]
+
+
+def test_web_call_links_via_user_data_call_id(bolna, monkeypatch):
+    processed = []
+    monkeypatch.setattr(
+        "pehchana.pipeline.process_call", lambda call_id, **kw: processed.append(call_id)
+    )
+
+    with db.get_sessionmaker()() as s:
+        call = Call(channel=Channel.WEB, arm_id="kalpa", arm_kind="ai", status=CallStatus.ROUTED)
+        s.add(call)
+        s.commit()
+        web_call_id = call.id
+
+    payload = dict(EXECUTION)
+    payload["id"] = "web-call-exec-1"
+    payload["user_number"] = None
+    payload["user_data"] = {"call_id": web_call_id}
+    payload["telephony_data"] = dict(EXECUTION["telephony_data"])
+    payload["telephony_data"]["recording_url"] = "https://api.bolna.ai/recordings/call/web.mp3"
+
+    r = bolna.post("/bolna/webhook", json=payload, headers={"x-bolna-webhook-secret": "shh"})
+    assert r.status_code == 200
+    assert r.json() == {"attached": web_call_id}
+
+    saved = get_call(web_call_id)
+    assert saved.status == CallStatus.ENDED
+    assert saved.bolna_execution_id == "web-call-exec-1"
+    assert saved.recording_url == "https://api.bolna.ai/recordings/call/web.mp3"
+    assert processed == [web_call_id]
+
+
+def test_accuse_on_web_call_with_no_phone_number(bolna):
+    with db.get_sessionmaker()() as s:
+        call = Call(channel=Channel.WEB, arm_id="kalpa", arm_kind="ai", status=CallStatus.LIVE)
+        s.add(call)
+        s.commit()
+        web_call_id = call.id
+
+    r = bolna.post(
+        "/bolna/fn/accuse",
+        json={"caller_phrase": "tum bot ho", "agent_id": AGENT_ID, "from_number": ""},
+        headers={"Authorization": "Bearer shh"},
+    )
+    assert r.status_code == 200 and r.json()["result"] == "caught"
+    with db.get_sessionmaker()() as s:
+        accusation = s.query(Accusation).filter_by(call_id=web_call_id).first()
+        assert accusation is not None
+        assert accusation.phrase == "tum bot ho"

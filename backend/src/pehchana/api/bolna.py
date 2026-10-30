@@ -20,7 +20,7 @@ import secrets
 from datetime import UTC, datetime, timedelta
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Header, HTTPException, Request, status
+from fastapi import APIRouter, BackgroundTasks, Header, HTTPException, Request, status
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -28,8 +28,16 @@ from sqlalchemy.orm import Session
 from pehchana.api.deps import ArmsDep, SessionDep, SettingsDep
 from pehchana.config import Settings
 from pehchana.integrations.bolna import TERMINAL_STATUSES
-from pehchana.models import Accusation, AccusationSource, Call, CallStatus, utcnow
-from pehchana.telephony.call_flow import hash_caller
+from pehchana.models import (
+    Accusation,
+    AccusationSource,
+    Call,
+    CallStatus,
+    Channel,
+    Source,
+    utcnow,
+)
+from pehchana.telephony.call_flow import SIMULATED_CALLER_PREFIX, hash_caller
 
 log = logging.getLogger(__name__)
 
@@ -70,7 +78,7 @@ def _bearer(authorization: str | None) -> str | None:
 class AccuseIn(BaseModel):
     caller_phrase: str
     agent_id: str
-    from_number: str
+    from_number: str = ""
 
 
 @router.post("/fn/accuse")
@@ -95,17 +103,39 @@ def accuse_bot(
         return {"result": "caught", "say": _REVEAL}
 
     now = utcnow()
-    caller_hash = hash_caller(body.from_number, settings.caller_hash_salt)
-    call = session.scalars(
-        select(Call)
-        .where(
-            Call.arm_id == arm.id,
-            Call.caller_hash == caller_hash,
-            Call.status.in_(_OPEN),
-            Call.started_at >= now - ACCUSE_LOOKBACK,
+    caller_hash = (
+        hash_caller(body.from_number, settings.caller_hash_salt) if body.from_number else None
+    )
+    call = None
+    if caller_hash:
+        call = session.scalars(
+            select(Call)
+            .where(
+                Call.arm_id == arm.id,
+                Call.caller_hash == caller_hash,
+                Call.status.in_(_OPEN),
+                Call.started_at >= now - ACCUSE_LOOKBACK,
+            )
+            .order_by(Call.started_at.desc())
+        ).first()
+
+    if call is None:
+        # Fallback for suppressed caller ID or web calls (where caller_hash is None):
+        # find the single open call for this arm in the lookback window
+        candidates = list(
+            session.scalars(
+                select(Call).where(
+                    Call.arm_id == arm.id,
+                    Call.status.in_(_OPEN),
+                    Call.started_at >= now - ACCUSE_LOOKBACK,
+                )
+            )
         )
-        .order_by(Call.started_at.desc())
-    ).first()
+        if len(candidates) == 1 and (
+            candidates[0].caller_hash is None or candidates[0].caller_hash == caller_hash
+        ):
+            call = candidates[0]
+
     if call is None:
         log.warning("accuse_bot: no open call for arm %s in the last %s", arm.id, ACCUSE_LOOKBACK)
         return {"result": "caught", "say": _REVEAL}
@@ -138,7 +168,14 @@ def _parsed_created_at(payload: dict[str, Any]) -> datetime | None:
 def _find_call_for_execution(
     session: Session, arm_id: str, caller_hash_salt: str, payload: dict[str, Any]
 ) -> Call | None:
-    """docs/architecture.md > Linking a Plivo call to its Bolna execution."""
+    """docs/architecture.md > Linking a call to its Bolna execution."""
+    # 1. Direct call_id match from user_data or context_details (web calls & explicit links)
+    user_data = payload.get("user_data") or payload.get("context_details") or {}
+    if isinstance(user_data, dict) and "call_id" in user_data:
+        call = session.get(Call, str(user_data["call_id"]))
+        if call is not None:
+            return call
+
     created_at = _parsed_created_at(payload) or utcnow()
     window = (created_at - LINK_WINDOW_BEFORE, created_at + LINK_WINDOW_AFTER)
     telephony = payload.get("telephony_data") or {}
@@ -184,6 +221,7 @@ def _find_call_for_execution(
 @router.post("/webhook")
 async def execution_webhook(
     request: Request,
+    background: BackgroundTasks,
     session: SessionDep,
     settings: SettingsDep,
     arms: ArmsDep,
@@ -215,11 +253,63 @@ async def execution_webhook(
         return {"ignored": "unknown agent_id"}
 
     call = _find_call_for_execution(session, arm.id, settings.caller_hash_salt, payload)
+    telephony = payload.get("telephony_data") or {}
+    user_number = payload.get("user_number") or telephony.get("from_number")
+    caller_hash = hash_caller(str(user_number), settings.caller_hash_salt) if user_number else None
+    duration_s = float(payload.get("conversation_duration") or telephony.get("duration") or 0.0)
+
+    # Direct call fallback: if no matching Call was found (direct dial to Bolna), create it
     if call is None:
-        log.warning("bolna webhook: no matching call for execution %s", execution_id)
-        return {"ignored": "no matching call"}
+        channel = Channel.PHONE if user_number else Channel.WEB
+        source = (
+            Source.DEMO
+            if (user_number and str(user_number).startswith(SIMULATED_CALLER_PREFIX))
+            else Source.REAL
+        )
+        created_at = _parsed_created_at(payload) or utcnow()
+        call = Call(
+            channel=channel,
+            source=source,
+            status=CallStatus.ENDED,
+            arm_id=arm.id,
+            arm_kind=arm.kind,
+            caller_hash=caller_hash,
+            provider=telephony.get("provider", "bolna"),
+            provider_call_id=telephony.get("provider_call_id"),
+            started_at=created_at,
+            answered_at=created_at,
+            ended_at=created_at + timedelta(seconds=duration_s),
+            duration_s=duration_s,
+        )
+        session.add(call)
+        session.flush()
 
     call.bolna_execution_id = execution_id
     call.bolna_payload = payload
+    call.status = CallStatus.ENDED
+    if duration_s > 0 and (call.duration_s is None or call.duration_s == 0):
+        call.duration_s = duration_s
+    if call.ended_at is None:
+        call.ended_at = utcnow()
+
+    # Recording attachment & pipeline trigger
+    recording_url = telephony.get("recording_url") or payload.get("recording_url")
+    queue_processing = False
+    if recording_url and not call.recording_url:
+        try:
+            from pehchana.telephony.recordings import validate_recording_url
+
+            validate_recording_url(recording_url, settings.recording_host_allowlist)
+            call.recording_url = recording_url
+            queue_processing = True
+        except Exception as e:
+            log.warning("bolna webhook: invalid recording_url for %s: %s", execution_id, e)
+
     session.commit()
+
+    if queue_processing:
+        from pehchana.api.telephony import _process
+
+        background.add_task(_process, call.id)
+
     return {"attached": call.id}
