@@ -253,6 +253,31 @@ def process(
         raise typer.Exit(code=1)
 
 
+@app.command("audit-detector")
+def audit_detector(
+    dataset: Annotated[
+        Path | None,
+        typer.Option(
+            "--dataset",
+            "-d",
+            help="Path to an eval JSON dataset (default: tests/data/detector_cases.json).",
+        ),
+    ] = None,
+) -> None:
+    """Run detector accuracy audit (precision, recall, F1, and misclassifications)."""
+    from pehchana.audit import load_audit_cases, run_audit
+
+    tests_dir = Path(__file__).resolve().parent.parent.parent / "tests"
+    eval_path = dataset or tests_dir / "data" / "detector_cases.json"
+    if not eval_path.exists():
+        typer.echo(f"audit dataset not found at {eval_path}", err=True)
+        raise typer.Exit(code=2)
+
+    cases = load_audit_cases(eval_path)
+    report = run_audit(cases)
+    typer.echo(report.summary_markdown())
+
+
 def _todo(owner: str) -> int:
     typer.echo(f"not implemented yet ({owner})", err=True)
     return 1
