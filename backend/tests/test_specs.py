@@ -7,7 +7,6 @@ import pytest
 todo = pytest.mark.xfail(raises=NotImplementedError, reason="stub not implemented yet")
 
 
-@todo
 def test_ws2_detects_hinglish_accusation():
     from pehchana.detection import Word, detect_accusations
 
@@ -21,7 +20,6 @@ def test_ws2_detects_hinglish_accusation():
     assert [round(h.at_s, 1) for h in hits] == [41.2]
 
 
-@todo
 def test_ws2_ignores_talk_about_bots():
     from pehchana.detection import Word, detect_accusations
 

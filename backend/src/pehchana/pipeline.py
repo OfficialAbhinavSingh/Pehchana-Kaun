@@ -98,11 +98,18 @@ def process_call(call_id: str, *, session: Session, settings: Settings | None = 
             )
         )
 
-    # tagging.tag_call(call) once #18 ships; feature-flagged out until then.
-
     call.processing_error = None
     call.status = CallStatus.PROCESSED
     call.ended_at = call.ended_at or utcnow()
+    session.flush()
+
+    try:
+        from pehchana.tagging import tag_call
+
+        tag_call(call.id, session=session)
+    except Exception:
+        log.exception("tagging failed for call %s", call_id)
+
     session.commit()
     return call
 
