@@ -49,6 +49,28 @@ class BolnaClient:
             response.raise_for_status()
             return str(response.json()["agent_id"])
 
+    def update_agent(self, agent_id: str, body: dict[str, Any]) -> str:
+        """PUT /v2/agent/{agent_id} -> updated agent's id."""
+        with httpx.Client(base_url=self.base_url, timeout=_TIMEOUT) as client:
+            response = client.put(
+                f"/v2/agent/{agent_id}",
+                json=body,
+                headers={"Authorization": f"Bearer {self.api_key}"},
+            )
+            response.raise_for_status()
+            res = response.json()
+            return str(res.get("agent_id") or res.get("id") or agent_id)
+
+    def get_agent(self, agent_id: str) -> dict[str, Any]:
+        """GET /v2/agent/{agent_id} -> agent config dict."""
+        with httpx.Client(base_url=self.base_url, timeout=_TIMEOUT) as client:
+            response = client.get(
+                f"/v2/agent/{agent_id}",
+                headers={"Authorization": f"Bearer {self.api_key}"},
+            )
+            response.raise_for_status()
+            return dict(response.json())
+
     def get_execution(self, execution_id: str) -> dict[str, Any]:
         """GET /executions/{id}: conversation time, status, telephony data.
 
@@ -82,3 +104,91 @@ class BolnaClient:
             )
             response.raise_for_status()
             return response.json()
+
+
+def build_agent_payload(
+    arm: dict[str, Any],
+    *,
+    public_base_url: str,
+    bolna_shared_secret: str,
+    persona_prompt: str,
+    accuse_tool: dict[str, Any],
+) -> dict[str, Any]:
+    """Build the Bolna agent creation/update body from an AI arm entry in arms.yaml."""
+    arm_id = arm["id"]
+    stack = arm.get("stack", {})
+    tts = stack.get("tts", {})
+    stt = stack.get("stt", {})
+
+    # Synthesizer config
+    synth_provider = tts.get("provider", "kalpa")
+    synth_model = tts.get("model", "kalpa-tts-1")
+    synth_config: dict[str, Any] = {"model": synth_model}
+    if synth_provider == "kalpa":
+        synth_config["voice"] = "Kiara"
+
+    # Transcriber config
+    stt_provider = stt.get("provider", "deepgram")
+    stt_model = stt.get("model", "nova-3")
+    trans_config: dict[str, Any] = {"model": stt_model}
+    if stt.get("language"):
+        trans_config["language"] = stt["language"]
+
+    # Tool config with substituted URLs and secrets
+    import json
+
+    tool_str = json.dumps(accuse_tool)
+    tool_str = tool_str.replace("${PUBLIC_BASE_URL}", public_base_url.rstrip("/"))
+    tool_str = tool_str.replace("${BOLNA_SHARED_SECRET}", bolna_shared_secret)
+    resolved_tool = json.loads(tool_str)
+
+    return {
+        "agent_config": {
+            "agent_name": f"pehchana-kaun-{arm_id}",
+            "agent_welcome_message": "Haan hello? Kaun bol raha hai?",
+            "webhook_url": f"{public_base_url.rstrip('/')}/bolna/webhook",
+            "tasks": [
+                {
+                    "task_type": "conversation",
+                    "toolchain": {
+                        "execution": "parallel",
+                        "pipelines": [["transcriber", "llm", "synthesizer"]],
+                    },
+                    "tools_config": {
+                        "llm_agent": {
+                            "agent_type": "simple_llm_agent",
+                            "agent_flow_type": "streaming",
+                            "llm_config": {
+                                "provider": "openai",
+                                "model": "gpt-4.1-mini",
+                                "max_tokens": 120,
+                                "temperature": 0.7,
+                            },
+                        },
+                        "synthesizer": {
+                            "provider": synth_provider,
+                            "provider_config": synth_config,
+                            "stream": True,
+                        },
+                        "transcriber": {
+                            "provider": stt_provider,
+                            "provider_config": trans_config,
+                            "stream": True,
+                        },
+                        "input": {"provider": "plivo", "format": "wav"},
+                        "output": {"provider": "plivo", "format": "wav"},
+                        "api_tools": {"tools": [resolved_tool]},
+                    },
+                    "task_config": {
+                        "call_terminate": 300,
+                        "hangup_after_silence": 15,
+                    },
+                }
+            ],
+        },
+        "agent_prompts": {
+            "task_1": {
+                "system_prompt": persona_prompt,
+            }
+        },
+    }

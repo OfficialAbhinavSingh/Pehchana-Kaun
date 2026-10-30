@@ -60,7 +60,7 @@ WS1 (`arms.py`, `telephony/plivo.py`, `api/telephony.py`, `api/admin.py`):
 
 WS2 (`integrations/`, `detection.py`, `pipeline.py`, `tagging.py`, `api/bolna.py`, `bolna/`):
 - [x] Persona prompt `bolna/personas/priya-pune.md` + volunteer brief (same persona) tuned and aligned (#13).
-- [ ] `pk sync-agents`: one Bolna agent per AI arm from the template.
+- [x] `pk sync-agents`: one Bolna agent per AI arm from the template (#14).
 - [ ] `/bolna/fn/accuse` (auth, log, reveal line) and `/bolna/webhook` (idempotent).
 - [ ] Deepgram client, accusation detector (phrase list from real test calls), pipeline.
 - [x] Heuristic giveaway tags (#18) and Claude structured output tagging (#19) with free Groq/Gemini fallbacks.

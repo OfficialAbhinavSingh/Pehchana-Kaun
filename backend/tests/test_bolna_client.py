@@ -96,7 +96,96 @@ def test_get_execution_raises_when_not_found(client):
         client.get_execution("exec-1")
 
 
-# --- #3's linking fixture -------------------------------------------------------------
+# --- update_agent & get_agent ---------------------------------------------------------
+
+UPDATE_URL = "https://bolna.example/v2/agent/agent-xyz"
+
+
+@respx.mock
+def test_update_agent_returns_the_agent_id(client):
+    route = respx.put(UPDATE_URL).mock(
+        return_value=httpx.Response(200, json={"agent_id": "agent-xyz", "state": "updated"})
+    )
+    assert client.update_agent("agent-xyz", {"agent_name": "kalpa-test-updated"}) == "agent-xyz"
+    sent = route.calls.last.request
+    assert sent.headers["authorization"] == "Bearer bn-secret"
+    expected = httpx.Request("PUT", UPDATE_URL, json={"agent_name": "kalpa-test-updated"})
+    assert sent.content == expected.content
+
+
+@respx.mock
+def test_get_agent_returns_agent_config(client):
+    route = respx.get(UPDATE_URL).mock(
+        return_value=httpx.Response(200, json={"agent_id": "agent-xyz", "agent_name": "kalpa"})
+    )
+    assert client.get_agent("agent-xyz") == {"agent_id": "agent-xyz", "agent_name": "kalpa"}
+    assert route.calls.last.request.headers["authorization"] == "Bearer bn-secret"
+
+
+# --- build_agent_payload --------------------------------------------------------------
+
+
+def test_build_agent_payload_renders_toolchain_and_substitutions():
+    from pehchana.integrations.bolna import build_agent_payload
+
+    arm = {
+        "id": "kalpa",
+        "stack": {
+            "tts": {"provider": "kalpa", "model": "kalpa-tts-1"},
+            "stt": {"provider": "deepgram", "model": "nova-3", "language": "multi"},
+        },
+    }
+    tool = {
+        "name": "accuse_bot",
+        "url": "${PUBLIC_BASE_URL}/bolna/fn/accuse",
+        "token": "${BOLNA_SHARED_SECRET}",
+    }
+    payload = build_agent_payload(
+        arm,
+        public_base_url="https://api.example.com",
+        bolna_shared_secret="secret-123",
+        persona_prompt="You are Priya",
+        accuse_tool=tool,
+    )
+
+    assert payload["agent_config"]["agent_name"] == "pehchana-kaun-kalpa"
+    assert payload["agent_config"]["webhook_url"] == "https://api.example.com/bolna/webhook"
+    task = payload["agent_config"]["tasks"][0]
+    # toolchain.pipelines must be an array of arrays
+    assert task["toolchain"]["pipelines"] == [["transcriber", "llm", "synthesizer"]]
+
+    # Synthesizer & transcriber stack
+    assert task["tools_config"]["synthesizer"]["provider"] == "kalpa"
+    assert task["tools_config"]["synthesizer"]["provider_config"]["model"] == "kalpa-tts-1"
+    assert task["tools_config"]["synthesizer"]["provider_config"]["voice"] == "Kiara"
+    assert task["tools_config"]["transcriber"]["provider"] == "deepgram"
+    assert task["tools_config"]["transcriber"]["provider_config"]["model"] == "nova-3"
+    assert task["tools_config"]["transcriber"]["provider_config"]["language"] == "multi"
+
+    # API tools substituted
+    resolved_tool = task["tools_config"]["api_tools"]["tools"][0]
+    assert resolved_tool["url"] == "https://api.example.com/bolna/fn/accuse"
+    assert resolved_tool["token"] == "secret-123"
+
+    # Persona
+    assert payload["agent_prompts"]["task_1"]["system_prompt"] == "You are Priya"
+
+
+# --- CLI sync-agents -----------------------------------------------------------------
+
+
+def test_cli_sync_agents_dry_run():
+    from typer.testing import CliRunner
+
+    from pehchana.cli import app
+
+    runner = CliRunner()
+    result = runner.invoke(app, ["sync-agents", "--dry-run"])
+    assert result.exit_code == 0
+    assert "kalpa" in result.stdout
+    assert "cartesia" in result.stdout
+    assert "sarvam" in result.stdout
+    assert "pipelines" in result.stdout
 
 
 def test_execution_completed_fixture_has_linking_fields() -> None:
