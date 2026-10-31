@@ -91,6 +91,11 @@ def test_warnings_do_not_block(prod_env):
     assert settings.production_problems() == []
     assert any("CORS_ORIGINS" in w for w in settings.production_warnings())
     assert any("CONSENT_AUDIO_URL" in w for w in settings.production_warnings())
+    assert any("DEEPGRAM_API_KEY" in w for w in settings.production_warnings())
+
+    prod_env(DEEPGRAM_API_KEY="dg-key")
+    settings = get_settings()
+    assert not any("DEEPGRAM_API_KEY" in w for w in settings.production_warnings())
 
 
 def test_prod_refuses_to_boot_with_dev_secrets(prod_env):
