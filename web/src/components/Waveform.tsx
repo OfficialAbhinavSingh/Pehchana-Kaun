@@ -26,7 +26,8 @@ export default function Waveform({
 
   return (
     <div
-      className={`flex items-center justify-center gap-[${barGap}px] ${className}`}
+      className={`flex items-center justify-center ${className}`}
+      style={{ gap: `${barGap}px` }}
       aria-hidden="true"
     >
       {heights.map((h, i) => {

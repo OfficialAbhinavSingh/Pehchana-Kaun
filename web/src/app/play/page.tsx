@@ -3,14 +3,19 @@
 import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Waveform from "@/components/Waveform";
+import { API_URL, GAME_NUMBER } from "@/lib/api";
 
 type Step = "consent" | "start" | "connecting" | "live" | "ended" | "error";
 
-// Indian game line purchased on Bolna; falls back to +918065356581 (080 6535 6581)
-const GAME_NUMBER = process.env.NEXT_PUBLIC_GAME_NUMBER || "+918065356581";
-const DISPLAY_NUMBER = "080 6535 6581";
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ?? process.env.API_URL ?? "http://localhost:8000";
+function formatDisplayNumber(num: string): string {
+  if (num === "+918065356581") return "080 6535 6581";
+  if (num.startsWith("+91") && num.length === 13) {
+    return `0${num.slice(3, 5)} ${num.slice(5, 9)} ${num.slice(9)}`;
+  }
+  return num;
+}
+
+const DISPLAY_NUMBER = formatDisplayNumber(GAME_NUMBER);
 
 type SessionInfo = {
   expires_in?: number;
@@ -115,8 +120,18 @@ export default function PlayPage() {
 
       await call.start();
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : "Could not connect to voice server.";
-      setErrorMessage(msg);
+      const err = e as { code?: string; message?: string };
+      if (
+        err?.code === "microphone_denied" ||
+        (e instanceof Error && (e.name === "NotAllowedError" || e.name === "PermissionDeniedError"))
+      ) {
+        setErrorMessage(
+          "Microphone permission was denied. Please allow microphone access in your browser to speak with Priya."
+        );
+      } else {
+        const msg = err?.message || (e instanceof Error ? e.message : "Could not connect to voice server.");
+        setErrorMessage(msg);
+      }
       setStep("error");
     }
   };
@@ -336,7 +351,7 @@ export default function PlayPage() {
                   type="button"
                   disabled={step === "connecting"}
                   onClick={startBrowserGame}
-                  className="flex h-13 w-full items-center justify-center bg-[#ec3013] font-mono text-xs font-bold uppercase tracking-wider text-[#f3f2f2] hover:bg-[#dd2b0f] shadow-[4px_4px_0_#201e1d] disabled:opacity-60 transition-all"
+                  className="flex h-12 w-full items-center justify-center bg-[#ec3013] font-mono text-xs font-bold uppercase tracking-wider text-[#f3f2f2] hover:bg-[#dd2b0f] shadow-[4px_4px_0_#201e1d] disabled:opacity-60 transition-all"
                 >
                   {step === "connecting" ? "Connecting to Priya…" : "Play in browser ↗"}
                 </button>

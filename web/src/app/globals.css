@@ -61,6 +61,13 @@ h1, h2, h3, h4, h5, h6, .font-display {
   letter-spacing: 0;
 }
 
+button, [role="button"] {
+  cursor: pointer;
+}
+button:disabled, [role="button"]:disabled {
+  cursor: not-allowed;
+}
+
 /* Modernist hard-edge shadows: a solid offset block, not a blur */
 .shadow-hard-sm {
   box-shadow: 3px 3px 0 var(--card-border);

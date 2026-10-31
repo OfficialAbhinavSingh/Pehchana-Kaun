@@ -37,7 +37,13 @@ export type Leaderboard = {
   by_language: Record<string, ArmStats[]>;
 };
 
-const API_URL = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+const rawApiUrl =
+  process.env.NEXT_PUBLIC_API_URL || process.env.API_URL || "http://localhost:8000";
+
+export const API_URL = rawApiUrl.replace(/\/+$/, "");
+
+export const GAME_NUMBER =
+  process.env.NEXT_PUBLIC_GAME_NUMBER || process.env.BOLNA_NUMBER_KALPA || "+918065356581";
 
 export async function getLeaderboard(firstCallOnly = false): Promise<Leaderboard> {
   const res = await fetch(`${API_URL}/leaderboard${firstCallOnly ? "?first_call_only=true" : ""}`);
