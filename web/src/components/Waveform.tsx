@@ -44,10 +44,10 @@ export default function Waveform({
               height: `${Math.max(4, scaledHeight)}px`,
               backgroundColor:
                 i % 4 === 0
-                  ? "#B8FF4D" // Electric lime
+                  ? "#6a56e8" // Electric lime
                   : i % 3 === 0
-                  ? "#8B7CFF" // Identity violet
-                  : "#5A5A6E", // Muted neutral
+                  ? "#5b45e0" // Identity violet
+                  : "#b9aee0", // Muted neutral
               opacity: active ? 1 : 0.4,
               animation: active
                 ? `pulseBar ${duration}s ease-in-out ${delay}s infinite alternate`

@@ -55,19 +55,19 @@ export default function SurvivalChart({
   const endSurvivalPercent = Math.round(points[points.length - 1].survival * 100);
 
   return (
-    <div className="rounded-[4px] border border-[#2B2B38] bg-[#1B1B23] p-5 sm:p-6 text-[#F5F5F5]">
+    <div className="rounded-3xl border-2 border-[#1f1b2e] bg-[#ffffff] p-5 sm:p-6 text-[#1f1b2e]">
       {/* Chart Header */}
-      <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-2 border-b border-[#2B2B38] pb-4">
+      <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-2 border-b-2 border-[#1f1b2e] pb-4">
         <div>
-          <h4 className="text-base font-bold font-display text-[#F5F5F5]">{title}</h4>
-          <p className="text-xs text-[#A1A1AA]">{subtitle}</p>
+          <h4 className="text-base font-bold font-display text-[#1f1b2e]">{title}</h4>
+          <p className="text-xs text-[#3b3552]">{subtitle}</p>
         </div>
         <div className="flex items-center gap-3 font-mono text-xs">
-          <span className="flex items-center gap-1.5 text-[#B8FF4D]">
-            <span className="inline-block h-2 w-2 rounded-full bg-[#B8FF4D]" />
+          <span className="flex items-center gap-1.5 text-[#6a56e8]">
+            <span className="inline-block h-2 w-2 rounded-full bg-[#6a56e8]" />
             Survival Curve
           </span>
-          <span className="flex items-center gap-1.5 text-[#8B7CFF]">
+          <span className="flex items-center gap-1.5 text-[#5b45e0]">
             <span>+</span> Right-censored
           </span>
         </div>
@@ -87,7 +87,7 @@ export default function SurvivalChart({
                 y1={getY(s)}
                 x2={width - padding.right}
                 y2={getY(s)}
-                stroke="#2B2B38"
+                stroke="#1f1b2e"
                 strokeDasharray="3 3"
                 strokeWidth="1"
               />
@@ -95,7 +95,7 @@ export default function SurvivalChart({
                 x={padding.left - 8}
                 y={getY(s) + 4}
                 textAnchor="end"
-                className="fill-[#71717A] text-[10px] font-mono"
+                className="fill-[#5d5675] text-[10px] font-mono"
               >
                 {Math.round(s * 100)}%
               </text>
@@ -110,7 +110,7 @@ export default function SurvivalChart({
                 y1={padding.top}
                 x2={getX(t)}
                 y2={height - padding.bottom}
-                stroke="#2B2B38"
+                stroke="#1f1b2e"
                 strokeDasharray="2 2"
                 strokeWidth="1"
               />
@@ -118,7 +118,7 @@ export default function SurvivalChart({
                 x={getX(t)}
                 y={height - padding.bottom + 18}
                 textAnchor="middle"
-                className="fill-[#A1A1AA] text-[11px] font-mono"
+                className="fill-[#3b3552] text-[11px] font-mono"
               >
                 {t}s
               </text>
@@ -129,7 +129,7 @@ export default function SurvivalChart({
           {ciPath && (
             <path
               d={ciPath}
-              fill="#8B7CFF"
+              fill="#5b45e0"
               fillOpacity="0.12"
               stroke="none"
             />
@@ -139,7 +139,7 @@ export default function SurvivalChart({
           <path
             d={stepPath}
             fill="none"
-            stroke="#B8FF4D"
+            stroke="#6a56e8"
             strokeWidth="2.5"
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -158,15 +158,15 @@ export default function SurvivalChart({
               >
                 <circle
                   r="4"
-                  fill="#1B1B23"
-                  stroke="#8B7CFF"
+                  fill="#ffffff"
+                  stroke="#5b45e0"
                   strokeWidth="2"
                   className="transition-transform group-hover:scale-150"
                 />
                 <text
                   y="-8"
                   textAnchor="middle"
-                  className="fill-[#8B7CFF] text-[9px] font-mono font-bold"
+                  className="fill-[#5b45e0] text-[9px] font-mono font-bold"
                 >
                   +
                 </text>
@@ -177,14 +177,14 @@ export default function SurvivalChart({
 
         {/* Hover inspect card */}
         {hoveredPoint && (
-          <div className="absolute top-2 right-4 rounded-[4px] border border-[#8B7CFF] bg-[#101014]/95 p-2 font-mono text-xs shadow-lg backdrop-blur-md">
-            <div className="text-[#B8FF4D] font-bold">t = {hoveredPoint.t}s</div>
-            <div className="text-[#F5F5F5]">
+          <div className="absolute top-2 right-4 rounded-xl border-2 border-[#5b45e0] bg-[#f7f4fc]/95 p-2 font-mono text-xs shadow-lg backdrop-blur-md">
+            <div className="text-[#6a56e8] font-bold">t = {hoveredPoint.t}s</div>
+            <div className="text-[#1f1b2e]">
               Survival: {Math.round(hoveredPoint.survival * 100)}%
             </div>
-            <div className="text-[#A1A1AA]">At Risk: {hoveredPoint.at_risk}</div>
+            <div className="text-[#3b3552]">At Risk: {hoveredPoint.at_risk}</div>
             {hoveredPoint.ci_low !== null && (
-              <div className="text-[#71717A] text-[10px]">
+              <div className="text-[#5d5675] text-[10px]">
                 95% CI: [{Math.round(hoveredPoint.ci_low * 100)}% -{" "}
                 {Math.round(hoveredPoint.ci_high! * 100)}%]
               </div>
@@ -194,11 +194,11 @@ export default function SurvivalChart({
       </div>
 
       {/* Chart Footer description */}
-      <div className="mt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between border-t border-[#2B2B38] pt-3 text-[11px] font-mono text-[#A1A1AA]">
+      <div className="mt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between border-t-2 border-[#1f1b2e] pt-3 text-[11px] font-mono text-[#3b3552]">
         <div>
-          Kaplan-Meier estimate · <span className="text-[#8B7CFF] font-bold">+</span> indicates right-censoring at observed call end
+          Kaplan-Meier estimate · <span className="text-[#5b45e0] font-bold">+</span> indicates right-censoring at observed call end
         </div>
-        <div className="text-[#B8FF4D] font-bold mt-1 sm:mt-0">
+        <div className="text-[#6a56e8] font-bold mt-1 sm:mt-0">
           {endSurvivalPercent}% unaccused at 90s
         </div>
       </div>
