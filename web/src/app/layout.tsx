@@ -1,32 +1,23 @@
 import type { Metadata, Viewport } from "next";
-import { Space_Grotesk, Inter, JetBrains_Mono } from "next/font/google";
+import { Archivo } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import "./globals.css";
 
-const spaceGrotesk = Space_Grotesk({
-  variable: "--font-space-grotesk",
+// The whole site runs on one typeface — Archivo — matching the Modernist
+// design system this UI is themed from. Turbopack's font loader only allows
+// a single next/font/google call per family per build, so every weight the
+// site uses is requested once here and reused for all three theme roles.
+const archivo = Archivo({
+  variable: "--font-archivo",
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  display: "swap",
-});
-
-const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin"],
-  display: "swap",
-});
-
-const jetbrainsMono = JetBrains_Mono({
-  variable: "--font-jetbrains-mono",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  weight: ["400", "500", "600", "700", "800", "900"],
   display: "swap",
 });
 
 export const viewport: Viewport = {
-  themeColor: "#101014",
+  themeColor: "#f3f2f2",
   width: "device-width",
   initialScale: 1,
 };
@@ -61,9 +52,9 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${spaceGrotesk.variable} ${inter.variable} ${jetbrainsMono.variable} h-full dark`}
+      className={`${archivo.variable} h-full`}
     >
-      <body className="min-h-full flex flex-col bg-[#101014] text-[#F5F5F5] font-sans antialiased selection:bg-[#B8FF4D] selection:text-[#101014]">
+      <body className="min-h-full flex flex-col bg-[#f3f2f2] text-[#201e1d] font-sans antialiased selection:bg-[#ec3013] selection:text-[#f3f2f2]">
         <Navbar />
         <div className="flex-1 flex flex-col">{children}</div>
         <Footer />

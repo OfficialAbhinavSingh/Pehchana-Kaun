@@ -1,22 +1,22 @@
 @import "tailwindcss";
 
 :root {
-  --canvas: #101014;
-  --card: #1B1B23;
-  --card-hover: #22222D;
-  --card-border: #2B2B38;
-  --card-border-light: #3A3A4C;
-  --lime: #B8FF4D;
-  --lime-hover: #CDFF7A;
-  --lime-muted: rgba(184, 255, 77, 0.12);
-  --violet: #8B7CFF;
-  --violet-hover: #A599FF;
-  --violet-muted: rgba(139, 124, 255, 0.12);
-  --text-primary: #F5F5F5;
-  --text-muted: #A1A1AA;
-  --text-dim: #71717A;
-  --warning: #FFB547;
-  --error: #FF8C8C;
+  --canvas: #f3f2f2;
+  --card: #ffffff;
+  --card-hover: #fff2ef;
+  --card-border: #201e1d;
+  --card-border-light: #605d5d;
+  --lime: #ec3013;
+  --lime-hover: #dd2b0f;
+  --lime-muted: rgba(236, 48, 19, 0.1);
+  --violet: #ae1800;
+  --violet-hover: #ae1800;
+  --violet-muted: rgba(174, 24, 0, 0.1);
+  --text-primary: #201e1d;
+  --text-muted: #605d5d;
+  --text-dim: #7d7979;
+  --warning: #a8520a;
+  --error: #c81e3a;
 }
 
 @theme inline {
@@ -37,31 +37,86 @@
   --color-warning: var(--warning);
   --color-error: var(--error);
 
-  --font-display: var(--font-space-grotesk);
-  --font-sans: var(--font-inter);
-  --font-mono: var(--font-jetbrains-mono);
+  --font-display: var(--font-archivo);
+  --font-sans: var(--font-archivo);
+  --font-mono: var(--font-archivo);
 }
 
 body {
   background-color: var(--canvas);
   color: var(--text-primary);
-  font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family: var(--font-archivo), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans", sans-serif;
   overflow-x: hidden;
 }
 
 h1, h2, h3, h4, h5, h6, .font-display {
-  font-family: var(--font-space-grotesk), sans-serif;
-  letter-spacing: -0.02em;
+  font-family: var(--font-archivo), "Noto Sans", sans-serif;
+  font-weight: 800;
+  letter-spacing: -0.03em;
 }
 
 .font-mono, code, pre, .stat-number, .timer-display {
-  font-family: var(--font-jetbrains-mono), monospace;
+  font-family: var(--font-archivo), "Noto Sans", sans-serif;
+  font-weight: 700;
+  letter-spacing: 0;
 }
 
-/* Custom editorial focus ring */
+button, [role="button"] {
+  cursor: pointer;
+}
+button:disabled, [role="button"]:disabled {
+  cursor: not-allowed;
+}
+
+/* Modernist hard-edge shadows: a solid offset block, not a blur */
+.shadow-hard-sm {
+  box-shadow: 3px 3px 0 var(--card-border);
+}
+.shadow-hard {
+  box-shadow: 5px 5px 0 var(--card-border);
+}
+.shadow-hard-lg {
+  box-shadow: 7px 7px 0 var(--card-border);
+}
+
+/* "Pressable" interaction used on primary buttons across the site */
+.btn-pop {
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+.btn-pop:hover {
+  transform: translate(-2px, -2px);
+}
+.btn-pop:active {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 var(--card-border) !important;
+}
+
+@keyframes pk-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+@keyframes pk-marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+@keyframes pk-ring {
+  0% { transform: scale(0.8); opacity: 0.6; }
+  100% { transform: scale(1.9); opacity: 0; }
+}
+@keyframes pk-spin {
+  from { transform: rotateX(-22deg) rotateY(0); }
+  to { transform: rotateX(-22deg) rotateY(360deg); }
+}
+@keyframes pk-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+/* Custom focus ring — ink outline, never the browser default blue */
 *:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 3px var(--violet);
+  outline: 2px solid var(--lime);
+  outline-offset: 2px;
+  box-shadow: none;
 }
 
 /* Scrollbar styling */
@@ -70,14 +125,14 @@ h1, h2, h3, h4, h5, h6, .font-display {
   height: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: #101014;
+  background: #f3f2f2;
 }
 ::-webkit-scrollbar-thumb {
-  background: #2B2B38;
-  border-radius: 4px;
+  background: #201e1d;
+  border-radius: 0;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #3A3A4C;
+  background: #605d5d;
 }
 
 /* Reduced motion support */

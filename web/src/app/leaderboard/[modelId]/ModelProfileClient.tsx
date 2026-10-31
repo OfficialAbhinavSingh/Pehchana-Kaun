@@ -28,7 +28,7 @@ export default function ModelProfileClient({ modelId }: { modelId: string }) {
 
   if (error) {
     return (
-      <main className="min-h-screen bg-[#101014] text-[#F5F5F5] px-4 py-24 text-center font-mono text-sm text-[#A1A1AA]">
+      <main className="min-h-screen bg-[#f3f2f2] text-[#201e1d] px-4 py-24 text-center font-mono text-sm text-[#605d5d]">
         {error}
       </main>
     );
@@ -36,7 +36,7 @@ export default function ModelProfileClient({ modelId }: { modelId: string }) {
 
   if (!board) {
     return (
-      <main className="min-h-screen bg-[#101014] text-[#F5F5F5] px-4 py-24 text-center font-mono text-sm text-[#A1A1AA]">
+      <main className="min-h-screen bg-[#f3f2f2] text-[#201e1d] px-4 py-24 text-center font-mono text-sm text-[#605d5d]">
         Loading…
       </main>
     );
@@ -45,9 +45,9 @@ export default function ModelProfileClient({ modelId }: { modelId: string }) {
   const arm = board.arms.find((a) => a.arm_id === modelId && a.kind === "ai");
   if (!arm) {
     return (
-      <main className="min-h-screen bg-[#101014] text-[#F5F5F5] px-4 py-24 text-center font-mono text-sm text-[#A1A1AA] space-y-4">
+      <main className="min-h-screen bg-[#f3f2f2] text-[#201e1d] px-4 py-24 text-center font-mono text-sm text-[#605d5d] space-y-4">
         <p>No voice called &ldquo;{modelId}&rdquo; on the leaderboard.</p>
-        <Link href="/leaderboard" className="text-[#8B7CFF] hover:underline">
+        <Link href="/leaderboard" className="text-[#ae1800] hover:underline">
           ← Back to the leaderboard
         </Link>
       </main>
@@ -59,38 +59,38 @@ export default function ModelProfileClient({ modelId }: { modelId: string }) {
     .filter((entry): entry is [string, ArmStats] => entry[1] !== undefined);
 
   return (
-    <main className="min-h-screen bg-[#101014] text-[#F5F5F5] px-4 py-12 sm:px-6 lg:px-8">
+    <main className="min-h-screen bg-[#f3f2f2] text-[#201e1d] px-4 py-12 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl space-y-10">
         {/* Navigation & breadcrumb */}
-        <div className="flex items-center justify-between border-b border-[#2B2B38] pb-4 font-mono text-xs">
+        <div className="flex items-center justify-between border-b-2 border-[#201e1d] pb-4 font-mono text-xs">
           <Link
             href="/leaderboard"
-            className="text-[#8B7CFF] hover:underline flex items-center gap-1.5"
+            className="text-[#ae1800] hover:underline flex items-center gap-1.5"
           >
             ← Public leaderboard
           </Link>
-          <span className="text-[#71717A]">
+          <span className="text-[#7d7979]">
             {board.includes_demo_data ? "Includes seeded demo data" : "Live results"}
           </span>
         </div>
 
         {/* Model Profile Title */}
         <div className="space-y-4">
-          <div className="font-mono text-xs uppercase tracking-widest text-[#8B7CFF]">
+          <div className="font-mono text-xs uppercase tracking-widest text-[#ae1800]">
             VOICE PROFILE / EVALUATION
           </div>
           <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
             <div>
-              <h1 className="text-4xl sm:text-6xl font-bold font-display uppercase tracking-tight text-[#F5F5F5]">
+              <h1 className="text-4xl sm:text-6xl font-bold font-display uppercase tracking-tight text-[#201e1d]">
                 {arm.display_name}
               </h1>
               {!arm.ranked && (
-                <p className="mt-2 text-sm text-[#FFB547]">
+                <p className="mt-2 text-sm text-[#a8520a]">
                   Below {board.min_calls_for_ranking} calls: shown, not ranked yet.
                 </p>
               )}
             </div>
-            <div className="rounded-[4px] border border-[#2B2B38] bg-[#1B1B23] px-4 py-2 font-mono text-xs text-[#71717A]">
+            <div className=" border-2 border-[#201e1d] bg-[#ffffff] px-4 py-2 font-mono text-xs text-[#7d7979]">
               PHONE ONLY · HIDDEN IDENTITY UNTIL REVEAL_VENDORS
             </div>
           </div>
@@ -98,48 +98,48 @@ export default function ModelProfileClient({ modelId }: { modelId: string }) {
 
         {/* 4 Primary KPIs */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="rounded-[4px] border border-[#2B2B38] bg-[#1B1B23] p-6">
-            <span className="font-mono text-xs uppercase tracking-wider text-[#71717A]">
+          <div className=" border-2 border-[#201e1d] bg-[#ffffff] p-6">
+            <span className="font-mono text-xs uppercase tracking-wider text-[#7d7979]">
               AI PHONE CALLS
             </span>
-            <div className="mt-3 text-4xl font-bold font-mono text-[#F5F5F5]">{arm.n_calls}</div>
-            <p className="mt-2 text-xs font-mono text-[#A1A1AA]">
+            <div className="mt-3 text-4xl font-bold font-mono text-[#201e1d]">{arm.n_calls}</div>
+            <p className="mt-2 text-xs font-mono text-[#605d5d]">
               {byLanguage.map(([lang, a]) => `${a.n_calls} ${lang}`).join(" · ") || "—"}
             </p>
           </div>
 
-          <div className="rounded-[4px] border border-[#2B2B38] bg-[#1B1B23] p-6">
-            <span className="font-mono text-xs uppercase tracking-wider text-[#71717A]">
+          <div className=" border-2 border-[#201e1d] bg-[#ffffff] p-6">
+            <span className="font-mono text-xs uppercase tracking-wider text-[#7d7979]">
               AI ACCUSATION RATE
             </span>
-            <div className="mt-3 text-4xl font-bold font-mono text-[#B8FF4D]">
+            <div className="mt-3 text-4xl font-bold font-mono text-[#ec3013]">
               {pct(arm.accusation_rate)}
             </div>
-            <p className="mt-2 text-xs font-mono text-[#A1A1AA]">
+            <p className="mt-2 text-xs font-mono text-[#605d5d]">
               {arm.n_accused} detections / {arm.n_calls} calls
             </p>
           </div>
 
-          <div className="rounded-[4px] border border-[#2B2B38] bg-[#1B1B23] p-6">
-            <span className="font-mono text-xs uppercase tracking-wider text-[#71717A]">
+          <div className=" border-2 border-[#201e1d] bg-[#ffffff] p-6">
+            <span className="font-mono text-xs uppercase tracking-wider text-[#7d7979]">
               MEDIAN TURING CLOCK
             </span>
-            <div className="mt-3 text-4xl font-bold font-mono text-[#8B7CFF]">
+            <div className="mt-3 text-4xl font-bold font-mono text-[#ae1800]">
               {clock(arm.median_turing_clock_s)}
             </div>
-            <p className="mt-2 text-xs font-mono text-[#A1A1AA]">
+            <p className="mt-2 text-xs font-mono text-[#605d5d]">
               Among {arm.n_accused} detected calls only
             </p>
           </div>
 
-          <div className="rounded-[4px] border border-[#2B2B38] bg-[#1B1B23] p-6">
-            <span className="font-mono text-xs uppercase tracking-wider text-[#71717A]">
+          <div className=" border-2 border-[#201e1d] bg-[#ffffff] p-6">
+            <span className="font-mono text-xs uppercase tracking-wider text-[#7d7979]">
               NOT DETECTED
             </span>
-            <div className="mt-3 text-4xl font-bold font-mono text-[#F5F5F5]">
+            <div className="mt-3 text-4xl font-bold font-mono text-[#201e1d]">
               {arm.n_calls - arm.n_accused}
             </div>
-            <p className="mt-2 text-xs font-mono text-[#A1A1AA]">
+            <p className="mt-2 text-xs font-mono text-[#605d5d]">
               {arm.n_calls > 0
                 ? `${Math.round(((arm.n_calls - arm.n_accused) / arm.n_calls) * 100)}% right-censored`
                 : "—"}
@@ -169,15 +169,15 @@ export default function ModelProfileClient({ modelId }: { modelId: string }) {
 
         {/* Language Comparison Section */}
         {byLanguage.length > 0 && (
-          <div className="rounded-[4px] border border-[#2B2B38] bg-[#14141A] p-6 sm:p-8 space-y-6">
+          <div className=" border-2 border-[#201e1d] bg-[#fff2ef] p-6 sm:p-8 space-y-6">
             <div>
-              <span className="font-mono text-xs uppercase tracking-widest text-[#B8FF4D]">
+              <span className="font-mono text-xs uppercase tracking-widest text-[#ec3013]">
                 LANGUAGE IS PART OF THE EXPERIMENT
               </span>
-              <h3 className="text-2xl sm:text-3xl font-bold font-display text-[#F5F5F5] mt-1">
+              <h3 className="text-2xl sm:text-3xl font-bold font-display text-[#201e1d] mt-1">
                 The same voice. Different conversations.
               </h3>
-              <p className="text-xs text-[#A1A1AA] mt-1">
+              <p className="text-xs text-[#605d5d] mt-1">
                 Differences are descriptive across accents and turn-taking styles, not evidence of
                 a language advantage.
               </p>
@@ -185,26 +185,26 @@ export default function ModelProfileClient({ modelId }: { modelId: string }) {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {byLanguage.map(([lang, a]) => (
-                <div key={lang} className="rounded-[4px] border border-[#2B2B38] bg-[#1B1B23] p-6 space-y-4">
+                <div key={lang} className=" border-2 border-[#201e1d] bg-[#ffffff] p-6 space-y-4">
                   <div className="flex items-center justify-between font-mono text-xs">
-                    <span className="text-base font-bold text-[#F5F5F5] font-display uppercase">
+                    <span className="text-base font-bold text-[#201e1d] font-display uppercase">
                       {lang}
                     </span>
-                    <span className="text-[#71717A]">{a.n_calls} AI PHONE CALLS</span>
+                    <span className="text-[#7d7979]">{a.n_calls} AI PHONE CALLS</span>
                   </div>
                   <div className="flex items-baseline gap-6 font-mono">
                     <div>
-                      <div className="text-3xl font-bold text-[#B8FF4D]">{pct(a.accusation_rate)}</div>
-                      <div className="text-[11px] text-[#A1A1AA]">
+                      <div className="text-3xl font-bold text-[#ec3013]">{pct(a.accusation_rate)}</div>
+                      <div className="text-[11px] text-[#605d5d]">
                         {a.n_accused} / {a.n_calls} accused
                       </div>
                     </div>
                     <div>
-                      <div className="text-3xl font-bold text-[#8B7CFF]">{clock(a.median_turing_clock_s)}</div>
-                      <div className="text-[11px] text-[#A1A1AA]">Median clock (detected)</div>
+                      <div className="text-3xl font-bold text-[#ae1800]">{clock(a.median_turing_clock_s)}</div>
+                      <div className="text-[11px] text-[#605d5d]">Median clock (detected)</div>
                     </div>
                   </div>
-                  <p className="text-xs font-mono text-[#71717A] border-t border-[#2B2B38] pt-3">
+                  <p className="text-xs font-mono text-[#7d7979] border-t-2 border-[#201e1d] pt-3">
                     {a.n_calls - a.n_accused} calls not detected · right-censored.
                   </p>
                 </div>
@@ -214,7 +214,7 @@ export default function ModelProfileClient({ modelId }: { modelId: string }) {
             <div className="pt-2">
               <Link
                 href="/methodology"
-                className="font-mono text-xs uppercase tracking-wider text-[#8B7CFF] hover:underline"
+                className="font-mono text-xs uppercase tracking-wider text-[#ae1800] hover:underline"
               >
                 Explore the methodology ↗
               </Link>

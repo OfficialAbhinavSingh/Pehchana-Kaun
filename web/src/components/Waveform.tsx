@@ -26,7 +26,8 @@ export default function Waveform({
 
   return (
     <div
-      className={`flex items-center justify-center gap-[${barGap}px] ${className}`}
+      className={`flex items-center justify-center ${className}`}
+      style={{ gap: `${barGap}px` }}
       aria-hidden="true"
     >
       {heights.map((h, i) => {
@@ -38,16 +39,16 @@ export default function Waveform({
         return (
           <span
             key={i}
-            className="rounded-full transition-all"
+            className=" transition-all"
             style={{
               width: `${barWidth}px`,
               height: `${Math.max(4, scaledHeight)}px`,
               backgroundColor:
                 i % 4 === 0
-                  ? "#B8FF4D" // Electric lime
+                  ? "#ec3013" // Electric lime
                   : i % 3 === 0
-                  ? "#8B7CFF" // Identity violet
-                  : "#5A5A6E", // Muted neutral
+                  ? "#ae1800" // Identity violet
+                  : "#d7d3d3", // Muted neutral
               opacity: active ? 1 : 0.4,
               animation: active
                 ? `pulseBar ${duration}s ease-in-out ${delay}s infinite alternate`

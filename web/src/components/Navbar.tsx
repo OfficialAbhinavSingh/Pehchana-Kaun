@@ -17,15 +17,15 @@ export default function Navbar() {
   ];
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-[#2B2B38] bg-[#101014]/90 backdrop-blur-md">
+    <header className="sticky top-0 z-50 w-full border-b-2 border-[#201e1d] bg-[#f3f2f2]/90 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Brand / Logo */}
         <Link
           href="/"
-          className="flex items-center gap-2 text-xl font-bold tracking-tight text-[#F5F5F5] transition-colors hover:text-[#B8FF4D]"
+          className="flex items-center gap-2 text-xl font-bold tracking-tight text-[#201e1d] transition-colors hover:text-[#ec3013]"
         >
           <span className="font-display tracking-tight">Pehchana Kaun?</span>
-          <span className="rounded-[4px] bg-[#8B7CFF]/20 px-1.5 py-0.5 font-mono text-[10px] font-semibold tracking-wider text-[#8B7CFF]">
+          <span className=" bg-[#ae1800]/20 px-1.5 py-0.5 font-mono text-[10px] font-semibold tracking-wider text-[#ae1800]">
             EXP·01
           </span>
         </Link>
@@ -38,8 +38,8 @@ export default function Navbar() {
               <Link
                 key={link.href}
                 href={link.href}
-                className={`text-xs font-mono uppercase tracking-wider transition-colors hover:text-[#F5F5F5] ${
-                  isActive ? "text-[#B8FF4D] font-bold" : "text-[#A1A1AA]"
+                className={`text-xs font-mono uppercase tracking-wider transition-colors hover:text-[#201e1d] ${
+                  isActive ? "text-[#ec3013] font-bold" : "text-[#605d5d]"
                 }`}
               >
                 {link.label}
@@ -52,7 +52,7 @@ export default function Navbar() {
         <div className="flex items-center gap-4">
           <Link
             href="/play"
-            className="inline-flex h-10 items-center justify-center rounded-[4px] bg-[#B8FF4D] px-4 font-mono text-xs font-bold uppercase tracking-wider text-[#101014] transition-all hover:bg-[#CDFF7A] hover:shadow-[0_0_20px_rgba(184,255,77,0.3)] active:translate-y-[1px]"
+            className="inline-flex h-10 items-center justify-center bg-[#ec3013] px-4 font-mono text-xs font-bold uppercase tracking-wider text-[#f3f2f2] transition-all hover:bg-[#dd2b0f] hover:shadow-[4px_4px_0_#201e1d] active:translate-y-[1px]"
           >
             Play the Game ↗
           </Link>
@@ -61,7 +61,7 @@ export default function Navbar() {
           <button
             type="button"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="lg:hidden flex h-10 w-10 items-center justify-center rounded-[4px] border border-[#2B2B38] text-[#F5F5F5] hover:bg-[#1B1B23]"
+            className="lg:hidden flex h-10 w-10 items-center justify-center border-2 border-[#201e1d] text-[#201e1d] hover:bg-[#ffffff]"
             aria-label="Toggle navigation menu"
             aria-expanded={mobileMenuOpen}
           >
@@ -80,23 +80,23 @@ export default function Navbar() {
 
       {/* Mobile Drawer Menu */}
       {mobileMenuOpen && (
-        <div className="lg:hidden border-b border-[#2B2B38] bg-[#1B1B23] px-4 py-5">
+        <div className="lg:hidden border-b-2 border-[#201e1d] bg-[#ffffff] px-4 py-5">
           <div className="flex flex-col gap-4 font-mono text-xs uppercase tracking-wider">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
                 onClick={() => setMobileMenuOpen(false)}
-                className="text-[#F5F5F5] hover:text-[#B8FF4D] py-1"
+                className="text-[#201e1d] hover:text-[#ec3013] py-1"
               >
                 {link.label}
               </Link>
             ))}
-            <div className="pt-3 border-t border-[#2B2B38]">
+            <div className="pt-3 border-t-2 border-[#201e1d]">
               <Link
                 href="/play"
                 onClick={() => setMobileMenuOpen(false)}
-                className="flex h-11 w-full items-center justify-center rounded-[4px] bg-[#B8FF4D] font-mono text-xs font-bold uppercase tracking-wider text-[#101014]"
+                className="flex h-11 w-full items-center justify-center bg-[#ec3013] font-mono text-xs font-bold uppercase tracking-wider text-[#f3f2f2]"
               >
                 Play the Game ↗
               </Link>

@@ -62,22 +62,22 @@ export default function MethodologyPage() {
   ];
 
   return (
-    <main className="min-h-screen bg-[#101014] text-[#F5F5F5] px-4 py-12 sm:px-6 lg:px-8">
+    <main className="min-h-screen bg-[#f3f2f2] text-[#201e1d] px-4 py-12 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
         {/* Header */}
-        <div className="border-b border-[#2B2B38] pb-10">
-          <span className="font-mono text-xs uppercase tracking-widest text-[#8B7CFF]">
+        <div className="border-b-2 border-[#201e1d] pb-10">
+          <span className="font-mono text-xs uppercase tracking-widest text-[#ae1800]">
             About / Methodology / Privacy
           </span>
-          <h1 className="mt-2 text-4xl sm:text-6xl lg:text-7xl font-bold font-display uppercase tracking-tight text-[#F5F5F5]">
+          <h1 className="mt-2 text-4xl sm:text-6xl lg:text-7xl font-bold font-display uppercase tracking-tight text-[#201e1d]">
             Listen closely.
             <br />
-            <span className="text-[#B8FF4D]">Measure honestly.</span>
+            <span className="text-[#ec3013]">Measure honestly.</span>
           </h1>
-          <p className="mt-4 text-base sm:text-lg text-[#A1A1AA] max-w-2xl leading-relaxed">
+          <p className="mt-4 text-base sm:text-lg text-[#605d5d] max-w-2xl leading-relaxed">
             A playful question about voice. A serious responsibility to explain what the answers do and don&apos;t mean.
           </p>
-          <div className="mt-4 inline-flex items-center gap-2 rounded-[4px] border border-[#2B2B38] bg-[#1B1B23] px-3 py-1 font-mono text-xs text-[#71717A]">
+          <div className="mt-4 inline-flex items-center gap-2 border-2 border-[#201e1d] bg-[#ffffff] px-3 py-1 font-mono text-xs text-[#7d7979]">
             <span>PROTOTYPE RESEARCH PROTOCOL · METHODS & OPERATIONAL POLICIES</span>
           </div>
         </div>
@@ -85,8 +85,8 @@ export default function MethodologyPage() {
         {/* Content Layout: Sticky Table of Contents + Protocol Sections */}
         <div className="mt-12 grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
           {/* Sticky Sidebar */}
-          <aside className="lg:col-span-4 sticky top-24 rounded-[4px] border border-[#2B2B38] bg-[#1B1B23] p-6 space-y-4">
-            <div className="font-mono text-xs uppercase tracking-widest text-[#8B7CFF] font-bold">
+          <aside className="lg:col-span-4 sticky top-24 border-2 border-[#201e1d] bg-[#ffffff] p-6 space-y-4">
+            <div className="font-mono text-xs uppercase tracking-widest text-[#ae1800] font-bold">
               IN THIS DOCUMENT
             </div>
             <nav className="space-y-2 font-mono text-xs">
@@ -94,19 +94,19 @@ export default function MethodologyPage() {
                 <a
                   key={note.id}
                   href={`#${note.id}`}
-                  className="block text-[#A1A1AA] hover:text-[#B8FF4D] transition-colors py-1 border-b border-[#2B2B38]/40"
+                  className="block text-[#605d5d] hover:text-[#ec3013] transition-colors py-1 border-b-2 border-[#201e1d]/40"
                 >
-                  <span className="text-[#71717A] mr-2">{note.num} /</span>
+                  <span className="text-[#7d7979] mr-2">{note.num} /</span>
                   {note.title.split(",")[0].split(".")[0]}
                 </a>
               ))}
             </nav>
 
-            <div className="pt-4 border-t border-[#2B2B38] font-mono text-[11px] text-[#71717A] space-y-2">
-              <strong className="text-[#F5F5F5] block">METHODOLOGY, NOT RESULTS</strong>
+            <div className="pt-4 border-t-2 border-[#201e1d] font-mono text-[11px] text-[#7d7979] space-y-2">
+              <strong className="text-[#201e1d] block">METHODOLOGY, NOT RESULTS</strong>
               <p>
                 This page explains the protocol. For live numbers, see the{" "}
-                <Link href="/leaderboard" className="text-[#8B7CFF] hover:underline">
+                <Link href="/leaderboard" className="text-[#ae1800] hover:underline">
                   leaderboard
                 </Link>
                 .
@@ -120,38 +120,38 @@ export default function MethodologyPage() {
               <section
                 key={note.id}
                 id={note.id}
-                className="scroll-mt-24 rounded-[4px] border border-[#2B2B38] bg-[#1B1B23] p-8 space-y-4 hover:border-[#8B7CFF]/50 transition-colors"
+                className="scroll-mt-24 border-2 border-[#201e1d] bg-[#ffffff] p-8 space-y-4 hover:border-[#ae1800]/50 transition-colors"
               >
                 <div className="flex items-center justify-between font-mono text-xs">
-                  <span className="text-[#8B7CFF] uppercase font-bold">
+                  <span className="text-[#ae1800] uppercase font-bold">
                     {note.num} / PROTOCOL NOTE
                   </span>
-                  <span className="text-[#71717A]">RESEARCH STANDARD</span>
+                  <span className="text-[#7d7979]">RESEARCH STANDARD</span>
                 </div>
-                <h2 className="text-2xl font-bold font-display text-[#F5F5F5]">
+                <h2 className="text-2xl font-bold font-display text-[#201e1d]">
                   {note.title}
                 </h2>
-                <p className="text-sm sm:text-base text-[#A1A1AA] leading-relaxed">
+                <p className="text-sm sm:text-base text-[#605d5d] leading-relaxed">
                   {note.content}
                 </p>
               </section>
             ))}
 
             {/* Curiosity Callout Banner */}
-            <div className="rounded-[4px] border border-[#B8FF4D] bg-[#14141A] p-8 space-y-4">
-              <span className="font-mono text-xs uppercase tracking-widest text-[#B8FF4D] font-bold">
+            <div className=" border-2 border-[#ec3013] bg-[#fff2ef] p-8 space-y-4">
+              <span className="font-mono text-xs uppercase tracking-widest text-[#ec3013] font-bold">
                 CURIOSITY, NOT CERTAINTY.
               </span>
-              <h3 className="text-2xl font-bold font-display text-[#F5F5F5]">
+              <h3 className="text-2xl font-bold font-display text-[#201e1d]">
                 Accusation is an observable behavior.
               </h3>
-              <p className="text-sm text-[#A1A1AA] leading-relaxed">
+              <p className="text-sm text-[#605d5d] leading-relaxed">
                 Human-likeness is a much bigger claim. Read the rates, the curve, and the limitations together.
               </p>
               <div className="pt-2">
                 <Link
                   href="/leaderboard"
-                  className="inline-flex h-11 items-center justify-center rounded-[4px] bg-[#B8FF4D] px-6 font-mono text-xs font-bold uppercase tracking-wider text-[#101014] hover:bg-[#CDFF7A]"
+                  className="inline-flex h-11 items-center justify-center bg-[#ec3013] px-6 font-mono text-xs font-bold uppercase tracking-wider text-[#f3f2f2] hover:bg-[#dd2b0f]"
                 >
                   Back to the leaderboard ↗
                 </Link>
