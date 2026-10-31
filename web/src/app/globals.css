@@ -1,20 +1,20 @@
 @import "tailwindcss";
 
 :root {
-  --canvas: #f7f4fc;
+  --canvas: #f3f2f2;
   --card: #ffffff;
-  --card-hover: #f0ecff;
-  --card-border: #1f1b2e;
-  --card-border-light: #3b3552;
-  --lime: #6a56e8;
-  --lime-hover: #5640d8;
-  --lime-muted: rgba(106, 86, 232, 0.12);
-  --violet: #5b45e0;
-  --violet-hover: #4636b0;
-  --violet-muted: rgba(91, 69, 224, 0.12);
-  --text-primary: #1f1b2e;
-  --text-muted: #3b3552;
-  --text-dim: #5d5675;
+  --card-hover: #fff2ef;
+  --card-border: #201e1d;
+  --card-border-light: #605d5d;
+  --lime: #ec3013;
+  --lime-hover: #dd2b0f;
+  --lime-muted: rgba(236, 48, 19, 0.1);
+  --violet: #ae1800;
+  --violet-hover: #ae1800;
+  --violet-muted: rgba(174, 24, 0, 0.1);
+  --text-primary: #201e1d;
+  --text-muted: #605d5d;
+  --text-dim: #7d7979;
   --warning: #a8520a;
   --error: #c81e3a;
 }
@@ -61,15 +61,15 @@ h1, h2, h3, h4, h5, h6, .font-display {
   letter-spacing: 0;
 }
 
-/* Neo-brutalist hard-edge shadows: a solid offset block, not a blur */
+/* Modernist hard-edge shadows: a solid offset block, not a blur */
 .shadow-hard-sm {
   box-shadow: 3px 3px 0 var(--card-border);
 }
 .shadow-hard {
-  box-shadow: 4px 4px 0 var(--card-border);
+  box-shadow: 5px 5px 0 var(--card-border);
 }
 .shadow-hard-lg {
-  box-shadow: 6px 6px 0 var(--card-border);
+  box-shadow: 7px 7px 0 var(--card-border);
 }
 
 /* "Pressable" interaction used on primary buttons across the site */
@@ -118,14 +118,14 @@ h1, h2, h3, h4, h5, h6, .font-display {
   height: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: #f7f4fc;
+  background: #f3f2f2;
 }
 ::-webkit-scrollbar-thumb {
-  background: #1f1b2e;
-  border-radius: 4px;
+  background: #201e1d;
+  border-radius: 0;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #3b3552;
+  background: #605d5d;
 }
 
 /* Reduced motion support */

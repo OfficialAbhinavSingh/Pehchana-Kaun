@@ -38,16 +38,16 @@ export default function Waveform({
         return (
           <span
             key={i}
-            className="rounded-full transition-all"
+            className=" transition-all"
             style={{
               width: `${barWidth}px`,
               height: `${Math.max(4, scaledHeight)}px`,
               backgroundColor:
                 i % 4 === 0
-                  ? "#6a56e8" // Electric lime
+                  ? "#ec3013" // Electric lime
                   : i % 3 === 0
-                  ? "#5b45e0" // Identity violet
-                  : "#b9aee0", // Muted neutral
+                  ? "#ae1800" // Identity violet
+                  : "#d7d3d3", // Muted neutral
               opacity: active ? 1 : 0.4,
               animation: active
                 ? `pulseBar ${duration}s ease-in-out ${delay}s infinite alternate`

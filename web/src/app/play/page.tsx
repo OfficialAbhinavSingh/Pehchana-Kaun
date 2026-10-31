@@ -122,38 +122,38 @@ export default function PlayPage() {
   };
 
   return (
-    <main className="min-h-screen bg-[#f7f4fc] text-[#1f1b2e] px-4 py-10 sm:px-6 lg:px-8">
+    <main className="min-h-screen bg-[#f3f2f2] text-[#201e1d] px-4 py-10 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
         {/* PROGRESS STEPPER INDICATOR */}
-        <div className="mb-10 border-b-2 border-[#1f1b2e] pb-5">
+        <div className="mb-10 border-b-2 border-[#201e1d] pb-5">
           <div className="flex items-center justify-between font-mono text-xs uppercase tracking-wider">
             <div className="flex flex-wrap items-center gap-3 sm:gap-8">
               <span
                 className={`flex items-center gap-2 ${
-                  step === "consent" ? "text-[#6a56e8] font-bold" : "text-[#5d5675]"
+                  step === "consent" ? "text-[#ec3013] font-bold" : "text-[#7d7979]"
                 }`}
               >
-                <span className="text-[#5b45e0]">01</span> The rules
+                <span className="text-[#ae1800]">01</span> The rules
               </span>
-              <span className="text-[#1f1b2e]">/</span>
+              <span className="text-[#201e1d]">/</span>
               <span
                 className={`flex items-center gap-2 ${
                   step === "start" || step === "connecting" || step === "error"
-                    ? "text-[#6a56e8] font-bold"
-                    : "text-[#5d5675]"
+                    ? "text-[#ec3013] font-bold"
+                    : "text-[#7d7979]"
                 }`}
               >
-                <span className="text-[#5b45e0]">02</span> Start the call
+                <span className="text-[#ae1800]">02</span> Start the call
               </span>
-              <span className="text-[#1f1b2e]">/</span>
+              <span className="text-[#201e1d]">/</span>
               <span
                 className={`flex items-center gap-2 ${
                   step === "live" || step === "ended"
-                    ? "text-[#6a56e8] font-bold"
-                    : "text-[#5d5675]"
+                    ? "text-[#ec3013] font-bold"
+                    : "text-[#7d7979]"
                 }`}
               >
-                <span className="text-[#5b45e0]">03</span> The call
+                <span className="text-[#ae1800]">03</span> The call
               </span>
             </div>
           </div>
@@ -164,48 +164,48 @@ export default function PlayPage() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
             <div className="lg:col-span-7 space-y-6">
               <div>
-                <span className="font-mono text-xs uppercase tracking-widest text-[#5b45e0] font-semibold">
+                <span className="font-mono text-xs uppercase tracking-widest text-[#ae1800] font-semibold">
                   FIRST, A FAIR WARNING.
                 </span>
-                <h1 className="mt-2 text-4xl sm:text-6xl font-bold font-display uppercase tracking-tight text-[#1f1b2e] leading-[0.95]">
+                <h1 className="mt-2 text-4xl sm:text-6xl font-bold font-display uppercase tracking-tight text-[#201e1d] leading-[0.95]">
                   You won&apos;t know
                   <br />
                   who&apos;s talking.
                 </h1>
-                <p className="mt-4 text-base text-[#3b3552] leading-relaxed">
+                <p className="mt-4 text-base text-[#605d5d] leading-relaxed">
                   That&apos;s the whole point. Here&apos;s what you&apos;re agreeing to before we start.
                 </p>
               </div>
 
               <div className="space-y-4 pt-2">
-                <div className="rounded-3xl border-2 border-[#1f1b2e] bg-[#ffffff] p-6">
-                  <div className="font-mono text-xs text-[#5b45e0] font-bold">01</div>
-                  <h3 className="mt-2 text-lg font-bold font-display text-[#1f1b2e]">
+                <div className=" border-2 border-[#201e1d] bg-[#ffffff] p-6">
+                  <div className="font-mono text-xs text-[#ae1800] font-bold">01</div>
+                  <h3 className="mt-2 text-lg font-bold font-display text-[#201e1d]">
                     A blind connection
                   </h3>
-                  <p className="mt-1 text-sm text-[#3b3552] leading-relaxed">
+                  <p className="mt-1 text-sm text-[#605d5d] leading-relaxed">
                     Browser play reaches an AI voice. When you dial our phone line, you could reach
                     a human or an AI.
                   </p>
                 </div>
 
-                <div className="rounded-3xl border-2 border-[#1f1b2e] bg-[#ffffff] p-6">
-                  <div className="font-mono text-xs text-[#6a56e8] font-bold">02</div>
-                  <h3 className="mt-2 text-lg font-bold font-display text-[#1f1b2e]">
+                <div className=" border-2 border-[#201e1d] bg-[#ffffff] p-6">
+                  <div className="font-mono text-xs text-[#ec3013] font-bold">02</div>
+                  <h3 className="mt-2 text-lg font-bold font-display text-[#201e1d]">
                     60–90 seconds, typically
                   </h3>
-                  <p className="mt-1 text-sm text-[#3b3552] leading-relaxed">
+                  <p className="mt-1 text-sm text-[#605d5d] leading-relaxed">
                     Speak naturally in Hindi or English. If you suspect AI, say the exact phrase
                     &ldquo;Tum bot ho!&rdquo; out loud.
                   </p>
                 </div>
 
-                <div className="rounded-3xl border-2 border-[#1f1b2e] bg-[#ffffff] p-6">
-                  <div className="font-mono text-xs text-[#5b45e0] font-bold">03</div>
-                  <h3 className="mt-2 text-lg font-bold font-display text-[#1f1b2e]">
+                <div className=" border-2 border-[#201e1d] bg-[#ffffff] p-6">
+                  <div className="font-mono text-xs text-[#ae1800] font-bold">03</div>
+                  <h3 className="mt-2 text-lg font-bold font-display text-[#201e1d]">
                     Your browser microphone is used
                   </h3>
-                  <p className="mt-1 text-sm text-[#3b3552] leading-relaxed">
+                  <p className="mt-1 text-sm text-[#605d5d] leading-relaxed">
                     Playing in browser streams audio directly through WebRTC. You will need to allow
                     microphone access.
                   </p>
@@ -214,22 +214,22 @@ export default function PlayPage() {
             </div>
 
             <div className="lg:col-span-5 space-y-6">
-              <div className="rounded-3xl border-2 border-[#1f1b2e] bg-[#ffffff] p-7 space-y-5">
+              <div className=" border-2 border-[#201e1d] bg-[#ffffff] p-7 space-y-5">
                 <div>
                   <span className="font-mono text-xs uppercase tracking-widest text-[#a8520a] font-semibold">
                     A VOICE IS PERSONAL.
                   </span>
-                  <h3 className="mt-1 text-xl font-bold font-display text-[#1f1b2e]">
+                  <h3 className="mt-1 text-xl font-bold font-display text-[#201e1d]">
                     Recording & research
                   </h3>
                 </div>
 
-                <p className="text-sm text-[#3b3552] leading-relaxed">
+                <p className="text-sm text-[#605d5d] leading-relaxed">
                   The call is recorded. Audio is transcribed to identify valid accusations,
                   calculate timing and study conversational giveaways.
                 </p>
 
-                <p className="text-xs text-[#5d5675] leading-relaxed">
+                <p className="text-xs text-[#7d7979] leading-relaxed">
                   Don&apos;t share financial, health or other sensitive personal information. We never
                   keep your phone number; only a one-way hash for repeat-caller counting.
                 </p>
@@ -237,21 +237,21 @@ export default function PlayPage() {
                 <div className="pt-2">
                   <Link
                     href="/methodology#privacy"
-                    className="font-mono text-xs text-[#5b45e0] hover:underline"
+                    className="font-mono text-xs text-[#ae1800] hover:underline"
                   >
                     Read privacy & methodology ↗
                   </Link>
                 </div>
 
-                <div className="pt-4 border-t-2 border-[#1f1b2e] space-y-4">
+                <div className="pt-4 border-t-2 border-[#201e1d] space-y-4">
                   <label className="flex items-start gap-3 cursor-pointer group">
                     <input
                       type="checkbox"
                       checked={hasConsented}
                       onChange={(e) => setHasConsented(e.target.checked)}
-                      className="mt-1 h-5 w-5 rounded-md border-[#1f1b2e] bg-[#f7f4fc] text-[#6a56e8] accent-[#6a56e8] focus:ring-[#5b45e0]"
+                      className="mt-1 h-5 w-5 border-[#201e1d] bg-[#f3f2f2] text-[#ec3013] accent-[#ec3013] focus:ring-[#ae1800]"
                     />
-                    <span className="text-xs sm:text-sm text-[#1f1b2e] group-hover:text-[#6a56e8] transition-colors leading-relaxed">
+                    <span className="text-xs sm:text-sm text-[#201e1d] group-hover:text-[#ec3013] transition-colors leading-relaxed">
                       I consent to a blind conversation and its recording for transcription,
                       scoring and research.
                     </span>
@@ -261,23 +261,23 @@ export default function PlayPage() {
                     type="button"
                     disabled={!hasConsented}
                     onClick={() => setStep("start")}
-                    className={`flex h-12 w-full items-center justify-center rounded-2xl px-6 font-mono text-xs font-bold uppercase tracking-wider transition-all ${
+                    className={`flex h-12 w-full items-center justify-center px-6 font-mono text-xs font-bold uppercase tracking-wider transition-all ${
                       hasConsented
-                        ? "bg-[#6a56e8] text-[#f7f4fc] hover:bg-[#5640d8] shadow-[4px_4px_0_#1f1b2e]"
-                        : "bg-[#ece6ff] text-[#5d5675] border-2 border-[#1f1b2e] cursor-not-allowed"
+                        ? "bg-[#ec3013] text-[#f3f2f2] hover:bg-[#dd2b0f] shadow-[4px_4px_0_#201e1d]"
+                        : "bg-[#fff2ef] text-[#7d7979] border-2 border-[#201e1d] cursor-not-allowed"
                     }`}
                   >
                     Continue
                   </button>
 
-                  <div className="text-[11px] font-mono text-[#5d5675] text-center">
+                  <div className="text-[11px] font-mono text-[#7d7979] text-center">
                     Consent is required to continue. You can leave now without starting a call.
                   </div>
                 </div>
               </div>
 
               <div className="text-left">
-                <Link href="/" className="font-mono text-xs text-[#3b3552] hover:text-[#1f1b2e]">
+                <Link href="/" className="font-mono text-xs text-[#605d5d] hover:text-[#201e1d]">
                   ← Back to home
                 </Link>
               </div>
@@ -290,20 +290,20 @@ export default function PlayPage() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
             <div className="lg:col-span-6 space-y-6">
               <div>
-                <span className="font-mono text-xs uppercase tracking-widest text-[#6a56e8] font-semibold">
+                <span className="font-mono text-xs uppercase tracking-widest text-[#ec3013] font-semibold">
                   ONE VOICE. NO CLUES.
                 </span>
-                <h1 className="mt-2 text-4xl sm:text-6xl font-bold font-display uppercase tracking-tight text-[#1f1b2e] leading-[0.95]">
+                <h1 className="mt-2 text-4xl sm:text-6xl font-bold font-display uppercase tracking-tight text-[#201e1d] leading-[0.95]">
                   Your next call
                   <br />
                   is a question.
                 </h1>
-                <p className="mt-4 text-base text-[#3b3552] leading-relaxed">
+                <p className="mt-4 text-base text-[#605d5d] leading-relaxed">
                   Call our live research phone line in India, or play in your browser with real-time audio.
                 </p>
               </div>
 
-              <div className="inline-flex items-center gap-2 rounded-3xl border-2 border-[#1f1b2e] bg-[#ffffff] px-3.5 py-1.5 font-mono text-xs text-[#5b45e0]">
+              <div className="inline-flex items-center gap-2 border-2 border-[#201e1d] bg-[#ffffff] px-3.5 py-1.5 font-mono text-xs text-[#ae1800]">
                 <span>↙</span>
                 <span>Consent recorded for this session</span>
               </div>
@@ -312,22 +312,22 @@ export default function PlayPage() {
             <div className="lg:col-span-6 space-y-6">
               <a
                 href={`tel:${GAME_NUMBER}`}
-                className="flex h-16 w-full items-center justify-center gap-3 rounded-3xl border-2 border-[#1f1b2e] bg-[#ffffff] px-6 font-mono text-sm font-bold uppercase tracking-wider text-[#1f1b2e] hover:border-[#6a56e8] transition-colors"
+                className="flex h-16 w-full items-center justify-center gap-3 border-2 border-[#201e1d] bg-[#ffffff] px-6 font-mono text-sm font-bold uppercase tracking-wider text-[#201e1d] hover:border-[#ec3013] transition-colors"
               >
                 Call {DISPLAY_NUMBER} ↗
               </a>
 
-              <div className="rounded-3xl border-2 border-[#1f1b2e] bg-[#ffffff] p-7 space-y-5">
-                <div className="font-mono text-xs uppercase tracking-wider text-[#5d5675] border-b-2 border-[#1f1b2e] pb-3">
+              <div className=" border-2 border-[#201e1d] bg-[#ffffff] p-7 space-y-5">
+                <div className="font-mono text-xs uppercase tracking-wider text-[#7d7979] border-b-2 border-[#201e1d] pb-3">
                   BROWSER GAME / LIVE AUDIO WEBRTC
                 </div>
-                <p className="text-sm text-[#3b3552] leading-relaxed">
+                <p className="text-sm text-[#605d5d] leading-relaxed">
                   Your browser will ask for microphone access. Connects directly to Priya over high-fidelity
                   Opus audio, no app or plugin needed.
                 </p>
 
                 {step === "error" && (
-                  <div className="rounded-3xl border-2 border-[#c81e3a] bg-[#ffffff] p-4 font-mono text-xs text-[#c81e3a]">
+                  <div className=" border-2 border-[#c81e3a] bg-[#ffffff] p-4 font-mono text-xs text-[#c81e3a]">
                     {errorMessage}
                   </div>
                 )}
@@ -336,16 +336,16 @@ export default function PlayPage() {
                   type="button"
                   disabled={step === "connecting"}
                   onClick={startBrowserGame}
-                  className="flex h-13 w-full items-center justify-center rounded-2xl bg-[#6a56e8] font-mono text-xs font-bold uppercase tracking-wider text-[#f7f4fc] hover:bg-[#5640d8] shadow-[4px_4px_0_#1f1b2e] disabled:opacity-60 transition-all"
+                  className="flex h-13 w-full items-center justify-center bg-[#ec3013] font-mono text-xs font-bold uppercase tracking-wider text-[#f3f2f2] hover:bg-[#dd2b0f] shadow-[4px_4px_0_#201e1d] disabled:opacity-60 transition-all"
                 >
                   {step === "connecting" ? "Connecting to Priya…" : "Play in browser ↗"}
                 </button>
 
-                <div className="pt-2 border-t-2 border-[#1f1b2e]">
+                <div className="pt-2 border-t-2 border-[#201e1d]">
                   <button
                     type="button"
                     onClick={() => setStep("consent")}
-                    className="font-mono text-xs text-[#3b3552] hover:text-[#1f1b2e]"
+                    className="font-mono text-xs text-[#605d5d] hover:text-[#201e1d]"
                   >
                     ← Review consent & rules
                   </button>
@@ -358,35 +358,35 @@ export default function PlayPage() {
         {/* STEP 3: LIVE */}
         {step === "live" && (
           <div className="space-y-8">
-            <div className="flex items-center justify-between font-mono text-xs border-b-2 border-[#1f1b2e] pb-4">
-              <span className="flex items-center gap-2 text-[#6a56e8] font-bold">
-                <span className="h-2.5 w-2.5 rounded-full bg-[#6a56e8] animate-ping" />
+            <div className="flex items-center justify-between font-mono text-xs border-b-2 border-[#201e1d] pb-4">
+              <span className="flex items-center gap-2 text-[#ec3013] font-bold">
+                <span className="h-2.5 w-2.5 bg-[#ec3013] animate-ping" />
                 Live conversation active
               </span>
-              <span className="text-[#5b45e0]">BROWSER · AI VOICE · WEBRTC AUDIO</span>
+              <span className="text-[#ae1800]">BROWSER · AI VOICE · WEBRTC AUDIO</span>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
               <div className="lg:col-span-7 space-y-8">
-                <h1 className="text-4xl sm:text-6xl font-bold font-display uppercase tracking-tight text-[#1f1b2e] leading-[0.95]">
+                <h1 className="text-4xl sm:text-6xl font-bold font-display uppercase tracking-tight text-[#201e1d] leading-[0.95]">
                   Listen to the voice.
                   <br />
                   Trust your instinct.
                 </h1>
 
-                <div className="rounded-3xl border-2 border-[#1f1b2e] bg-[#ffffff] p-8 sm:p-12 text-center">
-                  <div className="font-mono text-5xl sm:text-7xl font-bold tracking-tight text-[#1f1b2e]">
+                <div className=" border-2 border-[#201e1d] bg-[#ffffff] p-8 sm:p-12 text-center">
+                  <div className="font-mono text-5xl sm:text-7xl font-bold tracking-tight text-[#201e1d]">
                     {secondsLeft !== null ? `${secondsLeft}s` : "—"}
                   </div>
-                  <div className="mt-2 font-mono text-xs uppercase tracking-widest text-[#5d5675]">
+                  <div className="mt-2 font-mono text-xs uppercase tracking-widest text-[#7d7979]">
                     SESSION TIME REMAINING
                   </div>
 
                   <div className="mt-8">
                     <Waveform active={true} size="lg" className="w-full max-w-md mx-auto" />
                   </div>
-                  <div className="mt-4 font-mono text-xs text-[#6a56e8] font-bold flex items-center justify-center gap-2">
-                    <span className="h-2 w-2 rounded-full bg-[#6a56e8] animate-ping" />
+                  <div className="mt-4 font-mono text-xs text-[#ec3013] font-bold flex items-center justify-center gap-2">
+                    <span className="h-2 w-2 bg-[#ec3013] animate-ping" />
                     {isSpeaking ? "PRIYA IS SPEAKING..." : "LIVE TWO-WAY AUDIO CONNECTED"}
                   </div>
 
@@ -394,44 +394,44 @@ export default function PlayPage() {
                     <button
                       type="button"
                       onClick={endCall}
-                      className="inline-flex items-center justify-center rounded-2xl border-2 border-[#c81e3a] bg-[#ffffff] px-6 py-2.5 font-mono text-xs font-bold uppercase tracking-wider text-[#c81e3a] hover:bg-[#c81e3a]/10 transition-colors"
+                      className="inline-flex items-center justify-center border-2 border-[#c81e3a] bg-[#ffffff] px-6 py-2.5 font-mono text-xs font-bold uppercase tracking-wider text-[#c81e3a] hover:bg-[#c81e3a]/10 transition-colors"
                     >
                       Hang up call ✕
                     </button>
                   </div>
                 </div>
 
-                <div className="font-mono text-xs text-[#5d5675]">
+                <div className="font-mono text-xs text-[#7d7979]">
                   Connected via Bolna Web Call SDK. Your conversation is encrypted and streamed over WebRTC.
                 </div>
               </div>
 
               <div className="lg:col-span-5 space-y-6">
-                <div className="rounded-3xl border-2 border-[#5b45e0] bg-[#ffffff] p-7 space-y-4">
-                  <div className="font-mono text-xs uppercase tracking-widest text-[#5b45e0] font-bold">
+                <div className=" border-2 border-[#ae1800] bg-[#ffffff] p-7 space-y-4">
+                  <div className="font-mono text-xs uppercase tracking-widest text-[#ae1800] font-bold">
                     YOUR SPECIAL MOVE
                   </div>
-                  <h2 className="text-3xl sm:text-4xl font-bold font-display text-[#6a56e8]">
+                  <h2 className="text-3xl sm:text-4xl font-bold font-display text-[#ec3013]">
                     &ldquo;Tum bot ho!&rdquo;
                   </h2>
-                  <p className="text-sm text-[#3b3552] leading-relaxed">
+                  <p className="text-sm text-[#605d5d] leading-relaxed">
                     Say the phrase out loud during the call. There&apos;s no button here, it&apos;s part
                     of the natural conversation.
                   </p>
                 </div>
 
-                <div className="rounded-3xl border-2 border-[#1f1b2e] bg-[#ffffff] p-7 space-y-3">
-                  <h3 className="text-lg font-bold font-display text-[#1f1b2e]">
+                <div className=" border-2 border-[#201e1d] bg-[#ffffff] p-7 space-y-3">
+                  <h3 className="text-lg font-bold font-display text-[#201e1d]">
                     Your result goes on the leaderboard
                   </h3>
-                  <p className="text-sm text-[#3b3552] leading-relaxed">
+                  <p className="text-sm text-[#605d5d] leading-relaxed">
                     Results are counted into the public, anonymous leaderboard. See if Priya fooled you!
                   </p>
                 </div>
 
                 <Link
                   href="/leaderboard"
-                  className="flex h-12 w-full items-center justify-center rounded-2xl bg-[#6a56e8] font-mono text-xs font-bold uppercase tracking-wider text-[#f7f4fc] hover:bg-[#5640d8] transition-colors"
+                  className="flex h-12 w-full items-center justify-center bg-[#ec3013] font-mono text-xs font-bold uppercase tracking-wider text-[#f3f2f2] hover:bg-[#dd2b0f] transition-colors"
                 >
                   View Leaderboard ↗
                 </Link>
@@ -445,25 +445,25 @@ export default function PlayPage() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
             <div className="lg:col-span-7 space-y-6">
               <div>
-                <span className="font-mono text-xs uppercase tracking-widest text-[#6a56e8] font-semibold">
+                <span className="font-mono text-xs uppercase tracking-widest text-[#ec3013] font-semibold">
                   CALL COMPLETE
                 </span>
-                <h1 className="mt-2 text-4xl sm:text-6xl font-bold font-display uppercase tracking-tight text-[#1f1b2e] leading-[0.95]">
+                <h1 className="mt-2 text-4xl sm:text-6xl font-bold font-display uppercase tracking-tight text-[#201e1d] leading-[0.95]">
                   The voice has
                   <br />
                   hung up.
                 </h1>
-                <p className="mt-4 text-base text-[#3b3552] leading-relaxed">
+                <p className="mt-4 text-base text-[#605d5d] leading-relaxed">
                   Your conversation has ended. The audio recording is queued for timestamped transcription,
                   giveaway tagging, and Turing Clock evaluation.
                 </p>
               </div>
 
-              <div className="rounded-3xl border-2 border-[#1f1b2e] bg-[#ffffff] p-7 space-y-4">
-                <h3 className="text-xl font-bold font-display text-[#1f1b2e]">
+              <div className=" border-2 border-[#201e1d] bg-[#ffffff] p-7 space-y-4">
+                <h3 className="text-xl font-bold font-display text-[#201e1d]">
                   What happens next?
                 </h3>
-                <p className="text-sm text-[#3b3552] leading-relaxed">
+                <p className="text-sm text-[#605d5d] leading-relaxed">
                   Deepgram transcribes the caller channel to verify any accusation phrase (&ldquo;Tum bot ho!&rdquo;),
                   and the result is factored into the public Kaplan-Meier survival curve.
                 </p>
@@ -471,17 +471,17 @@ export default function PlayPage() {
             </div>
 
             <div className="lg:col-span-5 space-y-6">
-              <div className="rounded-3xl border-2 border-[#5b45e0] bg-[#ffffff] p-7 space-y-5">
-                <h3 className="text-xl font-bold font-display text-[#1f1b2e]">
+              <div className=" border-2 border-[#ae1800] bg-[#ffffff] p-7 space-y-5">
+                <h3 className="text-xl font-bold font-display text-[#201e1d]">
                   Check the scores
                 </h3>
-                <p className="text-sm text-[#3b3552] leading-relaxed">
+                <p className="text-sm text-[#605d5d] leading-relaxed">
                   See how Priya and the other AI voices stack up against the human control baseline.
                 </p>
 
                 <Link
                   href="/leaderboard"
-                  className="flex h-12 w-full items-center justify-center rounded-2xl bg-[#6a56e8] font-mono text-xs font-bold uppercase tracking-wider text-[#f7f4fc] hover:bg-[#5640d8] shadow-[4px_4px_0_#1f1b2e] transition-all"
+                  className="flex h-12 w-full items-center justify-center bg-[#ec3013] font-mono text-xs font-bold uppercase tracking-wider text-[#f3f2f2] hover:bg-[#dd2b0f] shadow-[4px_4px_0_#201e1d] transition-all"
                 >
                   View Leaderboard ↗
                 </Link>
@@ -492,7 +492,7 @@ export default function PlayPage() {
                     setStep("start");
                     setSecondsLeft(null);
                   }}
-                  className="flex h-12 w-full items-center justify-center rounded-2xl border-2 border-[#1f1b2e] bg-[#f7f4fc] font-mono text-xs font-bold uppercase tracking-wider text-[#1f1b2e] hover:border-[#5b45e0] transition-colors"
+                  className="flex h-12 w-full items-center justify-center border-2 border-[#201e1d] bg-[#f3f2f2] font-mono text-xs font-bold uppercase tracking-wider text-[#201e1d] hover:border-[#ae1800] transition-colors"
                 >
                   Play Again ↺
                 </button>

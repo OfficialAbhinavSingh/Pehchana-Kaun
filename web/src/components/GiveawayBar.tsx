@@ -22,10 +22,10 @@ export default function GiveawayBar({
   const total = totalDetected && totalDetected > 0 ? totalDetected : sumCount > 0 ? sumCount : 1;
 
   return (
-    <div className="rounded-3xl border-2 border-[#1f1b2e] bg-[#ffffff] p-5 sm:p-6 text-[#1f1b2e]">
-      <div className="border-b-2 border-[#1f1b2e] pb-4">
-        <h4 className="text-base font-bold font-display text-[#1f1b2e]">{title}</h4>
-        <p className="text-xs text-[#3b3552]">{subtitle}</p>
+    <div className=" border-2 border-[#201e1d] bg-[#ffffff] p-5 sm:p-6 text-[#201e1d]">
+      <div className="border-b-2 border-[#201e1d] pb-4">
+        <h4 className="text-base font-bold font-display text-[#201e1d]">{title}</h4>
+        <p className="text-xs text-[#605d5d]">{subtitle}</p>
       </div>
 
       <div className="mt-5 space-y-4">
@@ -34,17 +34,17 @@ export default function GiveawayBar({
           return (
             <div key={item.tag} className="space-y-1.5">
               <div className="flex items-center justify-between text-xs font-mono">
-                <span className="text-[#1f1b2e] font-medium flex items-center gap-2">
-                  <span className="text-[#5b45e0] font-bold">0{index + 1}</span>
+                <span className="text-[#201e1d] font-medium flex items-center gap-2">
+                  <span className="text-[#ae1800] font-bold">0{index + 1}</span>
                   {item.tag}
                 </span>
-                <span className="text-[#3b3552]">
-                  <strong className="text-[#6a56e8]">{percent}%</strong> · {item.count} calls
+                <span className="text-[#605d5d]">
+                  <strong className="text-[#ec3013]">{percent}%</strong> · {item.count} calls
                 </span>
               </div>
-              <div className="h-2 w-full overflow-hidden rounded-full bg-[#f7f4fc]">
+              <div className="h-2 w-full overflow-hidden bg-[#f3f2f2]">
                 <div
-                  className="h-full bg-gradient-to-r from-[#5b45e0] to-[#6a56e8] transition-all duration-500"
+                  className="h-full bg-gradient-to-r from-[#ae1800] to-[#ec3013] transition-all duration-500"
                   style={{ width: `${percent}%` }}
                 />
               </div>
@@ -53,7 +53,7 @@ export default function GiveawayBar({
         })}
       </div>
 
-      <div className="mt-5 border-t-2 border-[#1f1b2e] pt-3 text-[11px] font-mono text-[#5d5675]">
+      <div className="mt-5 border-t-2 border-[#201e1d] pt-3 text-[11px] font-mono text-[#7d7979]">
         One primary theme coded per detected call. No accusation is not proof of belief.
       </div>
     </div>

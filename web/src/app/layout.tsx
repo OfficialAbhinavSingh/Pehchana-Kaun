@@ -17,7 +17,7 @@ const archivo = Archivo({
 });
 
 export const viewport: Viewport = {
-  themeColor: "#f7f4fc",
+  themeColor: "#f3f2f2",
   width: "device-width",
   initialScale: 1,
 };
@@ -54,7 +54,7 @@ export default function RootLayout({
       lang="en"
       className={`${archivo.variable} h-full`}
     >
-      <body className="min-h-full flex flex-col bg-[#f7f4fc] text-[#1f1b2e] font-sans antialiased selection:bg-[#6a56e8] selection:text-[#f7f4fc]">
+      <body className="min-h-full flex flex-col bg-[#f3f2f2] text-[#201e1d] font-sans antialiased selection:bg-[#ec3013] selection:text-[#f3f2f2]">
         <Navbar />
         <div className="flex-1 flex flex-col">{children}</div>
         <Footer />
