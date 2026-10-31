@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Space_Grotesk, Inter, JetBrains_Mono } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import "./globals.css";
@@ -66,6 +67,7 @@ export default function RootLayout({
         <Navbar />
         <div className="flex-1 flex flex-col">{children}</div>
         <Footer />
+        <Analytics />
       </body>
     </html>
   );
