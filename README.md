@@ -9,8 +9,15 @@ away, and how that changes by language.
 Built by **Pehchaano Labs** (team of 3) for the [Bolna Symphony Buildathon](https://www.bolna.ai/symphony/buildathon)
 (submissions close **31 Oct 2026**; finale 20 Nov 2026, Bengaluru).
 
-> Status: **scaffold**. Interfaces, docs and tooling are in place; features are built
-> by the team in three workstreams. Start with [docs/plan.md](docs/plan.md).
+**Play it live:** [pehchana-kaun.vercel.app](https://web-ten-mu-42.vercel.app) (browser call, no
+phone number needed) · API: [pehchana-api.onrender.com](https://pehchana-api.onrender.com/healthz)
+
+> Status: **built and deployed**. Routing, three AI voice arms (Kalpa / Cartesia /
+> Sarvam), detection, giveaway tagging, and the public leaderboard are live. The
+> browser-call path works end to end against production. The dial-in phone number
+> is wired up but outbound calls from our Plivo account to Indian numbers are
+> currently geo-barred by Plivo — pending their support. Start with
+> [docs/plan.md](docs/plan.md).
 
 ## How it works
 
@@ -41,7 +48,7 @@ Details: [docs/architecture.md](docs/architecture.md). Metric definitions:
 | `docs/` | Context, architecture, plan, metrics, ethics, pitch | all |
 | `docs/research/` | Full research notes with source links (hackathon, Bolna, judges, sponsors, competitors) | read-only |
 
-## Quickstart
+## Quickstart (run it yourself)
 
 Prereqs: Python 3.12+ with [uv](https://docs.astral.sh/uv/), Node 20+ with pnpm,
 Docker (optional, for Postgres).

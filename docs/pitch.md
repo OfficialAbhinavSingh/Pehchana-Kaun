@@ -1,12 +1,16 @@
 # Pitch, submission and demo
 
-## Submission form (31 Oct)
+## Submission form (31 Oct) — ready to submit
 
 - **Project name:** Pehchana Kaun?
-- **Description (≤200 chars, current draft is 172):**
+- **Description (≤200 chars, 172):**
   > Pehchana Kaun? A phone line where you chat with a human or an AI and call out the bot. We measure how many seconds Indian voice AI survives before a real caller catches it.
-- **Link:** this repo (make it public or share access before submitting) or the live site.
-- **Deck / video:** Google Drive or Luma link only.
+- **Link:** https://github.com/OfficialAbhinavSingh/Pehchana-Kaun (make public or share with
+  organisers before submitting) · live site: https://web-ten-mu-42.vercel.app
+- **Deck / video:** not recorded yet — see #29. Submit a placeholder/Drive-folder link if the
+  form requires one now, then drop the real deck/video link in before the finale.
+- **Submit at:** https://www.bolna.ai/symphony/buildathon ("Submit project")
+- **After submitting:** screenshot the confirmation into the team chat (per #30).
 
 ## Deck outline (≤10 slides)
 
