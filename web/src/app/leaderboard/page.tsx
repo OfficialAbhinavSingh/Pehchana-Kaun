@@ -45,11 +45,11 @@ export default function LeaderboardPage() {
 
   const languages = Object.keys(board.by_language);
   const arms: ArmStats[] = activeTab === "all" ? board.arms : board.by_language[activeTab] ?? [];
-  const human = arms.find((a) => a.kind === "human");
+  const human = arms.find((a) => a.kind === "human" && a.n_calls > 0);
   const aiArms = arms.filter((a) => a.kind === "ai");
   const aiCalls = aiArms.reduce((s, a) => s + a.n_calls, 0);
   const aiAccused = aiArms.reduce((s, a) => s + a.n_accused, 0);
-  const topArm = aiArms.find((a) => a.ranked) ?? aiArms[0];
+  const topArm = aiArms.find((a) => a.ranked) ?? aiArms.find((a) => a.n_calls > 0);
 
   return (
     <main className="min-h-screen bg-[#f3f2f2] text-[#201e1d] px-4 py-12 sm:px-6 lg:px-8">
@@ -182,10 +182,22 @@ export default function LeaderboardPage() {
         </div>
 
         <div className=" border-2 border-[#201e1d] bg-[#fff2ef] p-4 font-mono text-xs text-[#605d5d]">
-          <strong className="text-[#201e1d]">
-            {aiCalls - aiAccused} AI calls were not detected.
-          </strong>{" "}
-          Their observation ends are right-censored, never scored as 0s.
+          {aiCalls > 0 ? (
+            <>
+              <strong className="text-[#201e1d]">
+                {aiCalls - aiAccused} AI calls were not detected.
+              </strong>{" "}
+              Their observation ends are right-censored, never scored as 0s.
+            </>
+          ) : (
+            <>
+              <strong className="text-[#201e1d]">No phone calls scored yet.</strong>{" "}
+              Numbers appear here as real calls are processed.{" "}
+              <Link href="/play" className="text-[#ae1800] hover:underline">
+                Be the first to play ↗
+              </Link>
+            </>
+          )}
         </div>
 
         {/* Section: A closer listen */}
@@ -234,7 +246,9 @@ export default function LeaderboardPage() {
                     </td>
                     <td className="py-4 px-6">{a.n_calls}</td>
                     <td className="py-4 px-6">
-                      <span className="font-bold text-[#ec3013]">{pct(a.accusation_rate)}</span>
+                      <span className="font-bold text-[#ec3013]">
+                        {a.n_calls > 0 ? pct(a.accusation_rate) : "—"}
+                      </span>
                       <span className="block text-[11px] text-[#605d5d]">
                         {a.n_accused} / {a.n_calls} {a.ranked ? "" : "· below ranking minimum"}
                       </span>
