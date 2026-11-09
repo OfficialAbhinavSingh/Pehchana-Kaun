@@ -113,7 +113,7 @@ export default function ModelProfileClient({ modelId }: { modelId: string }) {
               AI ACCUSATION RATE
             </span>
             <div className="mt-3 text-4xl font-bold font-mono text-[#ec3013]">
-              {pct(arm.accusation_rate)}
+              {arm.n_calls > 0 ? pct(arm.accusation_rate) : "—"}
             </div>
             <p className="mt-2 text-xs font-mono text-[#605d5d]">
               {arm.n_accused} detections / {arm.n_calls} calls

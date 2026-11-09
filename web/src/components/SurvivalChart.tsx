@@ -25,10 +25,24 @@ export default function SurvivalChart({
   const chartWidth = width - padding.left - padding.right;
   const chartHeight = height - padding.top - padding.bottom;
 
-  const points = curve && curve.length > 0 ? curve : [
-    { t: 0, survival: 1.0, at_risk: 300, events: 0, ci_low: null, ci_high: null },
-    { t: 90, survival: 0.5, at_risk: 150, events: 150, ci_low: 0.45, ci_high: 0.55 },
-  ];
+  if (!curve || curve.length === 0) {
+    return (
+      <div className=" border-2 border-[#201e1d] bg-[#ffffff] p-5 sm:p-6 text-[#201e1d]">
+        <div className="border-b-2 border-[#201e1d] pb-4">
+          <h4 className="text-base font-bold font-display text-[#201e1d]">{title}</h4>
+          <p className="text-xs text-[#605d5d]">{subtitle}</p>
+        </div>
+        <div className="flex min-h-[200px] flex-col items-center justify-center gap-2 text-center font-mono text-xs text-[#605d5d]">
+          <span className="font-bold uppercase tracking-wider text-[#201e1d]">
+            No scored phone calls yet
+          </span>
+          <span>The curve appears once real calls are processed.</span>
+        </div>
+      </div>
+    );
+  }
+
+  const points = curve;
 
   // Helper coordinate mappers
   const getX = (t: number) => padding.left + (Math.min(t, maxT) / maxT) * chartWidth;
@@ -52,7 +66,9 @@ export default function SurvivalChart({
     ciPath = `M ${topPoints} L ${bottomPoints} Z`;
   }
 
-  const endSurvivalPercent = Math.round(points[points.length - 1].survival * 100);
+  const lastInRange = [...points].reverse().find((p) => p.t <= maxT) ?? points[0];
+  const endSurvivalPercent = Math.round(lastInRange.survival * 100);
+  const observedTo = Math.round(Math.min(points[points.length - 1].t, maxT));
 
   return (
     <div className=" border-2 border-[#201e1d] bg-[#ffffff] p-5 sm:p-6 text-[#201e1d]">
@@ -199,7 +215,7 @@ export default function SurvivalChart({
           Kaplan-Meier estimate · <span className="text-[#ae1800] font-bold">+</span> indicates right-censoring at observed call end
         </div>
         <div className="text-[#ec3013] font-bold mt-1 sm:mt-0">
-          {endSurvivalPercent}% unaccused at 90s
+          {endSurvivalPercent}% unaccused at {observedTo}s
         </div>
       </div>
     </div>

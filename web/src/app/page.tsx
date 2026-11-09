@@ -340,10 +340,12 @@ export default function Home() {
                   HUMAN FALSE ACCUSATIONS
                 </span>
                 <div className="mt-3 text-4xl sm:text-5xl font-bold font-mono text-[#a8520a]">
-                  {human ? pct(human.accusation_rate) : "—"}
+                  {human && human.n_calls > 0 ? pct(human.accusation_rate) : "—"}
                 </div>
                 <p className="mt-2 text-xs font-mono text-[#605d5d]">
-                  {human ? `${human.n_accused} of ${human.n_calls} human calls` : "no human calls yet"}
+                  {human && human.n_calls > 0
+                    ? `${human.n_accused} of ${human.n_calls} human calls`
+                    : "no human calls yet"}
                 </p>
               </div>
             </div>
@@ -417,7 +419,9 @@ export default function Home() {
                       </td>
                       <td className="py-4 px-6">{a.n_calls}</td>
                       <td className="py-4 px-6">
-                        <span className="font-bold text-[#ec3013]">{pct(a.accusation_rate)}</span>
+                        <span className="font-bold text-[#ec3013]">
+                          {a.n_calls > 0 ? pct(a.accusation_rate) : "—"}
+                        </span>
                         <span className="block text-[11px] text-[#605d5d]">
                           {a.n_accused} / {a.n_calls}
                         </span>
