@@ -40,6 +40,17 @@ _PARAMS = {
     "smart_format": "false",
 }
 
+# Keyterm prompting (nova-3 only). Without it, real calls came back as "you are a
+# boss" and "तुम बहुत हो" for spoken "you are a bot" / "tum bot ho".
+KEYTERMS: tuple[str, ...] = (
+    "bot",
+    "robot",
+    "tum bot ho",
+    "you are a bot",
+    "बॉट",
+    "तुम बॉट हो",
+)
+
 
 @dataclass(frozen=True)
 class ChannelTranscript:
@@ -81,10 +92,13 @@ def transcribe_url(
         params["model"] = model
     if language:
         params["language"] = language
+    query: dict[str, str | list[str]] = dict(params)
+    if params["model"].startswith("nova-3"):
+        query["keyterm"] = list(KEYTERMS)
     with httpx.Client(timeout=_TIMEOUT) as client:
         response = client.post(
             "https://api.deepgram.com/v1/listen",
-            params=params,
+            params=query,
             json={"url": recording_url},
             headers={"Authorization": f"Token {api_key}"},
         )

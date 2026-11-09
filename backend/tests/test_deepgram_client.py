@@ -11,7 +11,7 @@ import httpx
 import pytest
 import respx
 
-from pehchana.integrations.deepgram import transcribe_url
+from pehchana.integrations.deepgram import KEYTERMS, transcribe_url
 
 URL = "https://api.deepgram.com/v1/listen"
 FIXTURE_PATH = Path(__file__).parent / "fixtures" / "deepgram" / "stereo_hinglish.json"
@@ -76,6 +76,16 @@ def test_model_and_language_can_be_overridden_for_the_spike():
     sent = respx.calls.last.request
     assert "model=nova-2" in str(sent.url)
     assert "language=hi" in str(sent.url)
+    assert "keyterm" not in sent.url.params
+
+
+@respx.mock
+def test_sends_accusation_keyterms_on_nova_3():
+    respx.post(URL).mock(return_value=httpx.Response(200, json=RESPONSE))
+    transcribe_url("https://recordings.example/call.wav", api_key="dg-secret")
+    sent = respx.calls.last.request
+    assert sent.url.params.get_list("keyterm") == list(KEYTERMS)
+    assert "tum bot ho" in KEYTERMS and "तुम बॉट हो" in KEYTERMS
 
 
 @respx.mock

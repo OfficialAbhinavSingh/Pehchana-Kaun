@@ -155,3 +155,31 @@ def test_empty_words() -> None:
 def test_words_with_no_accusation() -> None:
     words = [Word("hello", 1.0, 1.2), Word("kaise", 1.3, 1.5), Word("ho", 1.6, 1.8)]
     assert detect_accusations(words) == []
+
+
+def _words(text: str, start: float = 5.0) -> list[Word]:
+    return [Word(t, start + i * 0.3, start + i * 0.3 + 0.25) for i, t in enumerate(text.split())]
+
+
+@pytest.mark.parametrize(
+    "text",
+    ["तुम bot हो", "tum बॉट ho", "आप AI हैं", "क्या तुम bot हो", "ये bot है"],
+)
+def test_detects_mixed_script_accusations(text: str) -> None:
+    detections = detect_accusations(_words(text))
+    assert len(detections) == 1
+    assert detections[0].at_s == 5.0
+    assert detections[0].phrase == normalize(text)
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "मैं bot से बात कर रहा था",
+        "तुम बहुत अच्छे हो",
+        "हां hello कौन बोल रहा है",
+        "आप कहाँ से बोल रही हैं",
+    ],
+)
+def test_mixed_script_small_talk_is_not_an_accusation(text: str) -> None:
+    assert detect_accusations(_words(text)) == []
