@@ -188,6 +188,40 @@ ACCUSATION_PHRASES: frozenset[str] = frozenset(
     }
 )
 
+# Deepgram's multi-language model mixes scripts inside one sentence ("तुम bot हो"),
+# so phrases are matched on a script-neutral form: these Devanagari words are read
+# as their romanized spelling before lookup.
+_ROMANIZE: dict[str, str] = {
+    "तुम": "tum",
+    "तू": "tu",
+    "आप": "aap",
+    "हो": "ho",
+    "है": "hai",
+    "हैं": "hain",
+    "क्या": "kya",
+    "बॉट": "bot",
+    "बोट": "bot",
+    "एआई": "ai",
+    "रोबोट": "robot",
+    "यह": "yeh",
+    "ये": "ye",
+    "बोल": "bol",
+    "रहा": "raha",
+    "रही": "rahi",
+    "पक्का": "pakka",
+    "लगता": "lagta",
+    "अरे": "arre",
+}
+
+
+def _romanize(token: str) -> str:
+    return _ROMANIZE.get(token, token)
+
+
+_MATCH_PHRASES: frozenset[str] = frozenset(
+    " ".join(_romanize(t) for t in phrase.split()) for phrase in ACCUSATION_PHRASES
+)
+
 # Maximum phrase length in words for sliding window search.
 _MAX_WINDOW_WORDS = 6
 
@@ -217,8 +251,9 @@ def detect_accusations(words: Sequence[Word]) -> list[Detection]:
         # Try longer phrases first for greedy matching (e.g. "kya tum bot ho" before "tum bot ho")
         max_k = min(_MAX_WINDOW_WORDS, n - i)
         for k in range(max_k, 0, -1):
-            phrase = " ".join(normalized_tokens[i + j][0] for j in range(k))
-            if phrase in ACCUSATION_PHRASES:
+            window = [normalized_tokens[i + j][0] for j in range(k)]
+            phrase = " ".join(window)
+            if " ".join(_romanize(t) for t in window) in _MATCH_PHRASES:
                 start_time = normalized_tokens[i][1].start
                 raw_detections.append(Detection(at_s=start_time, phrase=phrase))
                 i += k  # Advance past matched words
