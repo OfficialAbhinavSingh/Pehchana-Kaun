@@ -31,7 +31,7 @@ export default function GiveawayBar({
       <div className="mt-5 space-y-4">
         {items.length === 0 && (
           <p className="py-6 text-center font-mono text-xs text-[#605d5d]">
-            No detected calls to code yet.
+            No themes coded yet.
           </p>
         )}
         {items.map((item, index) => {

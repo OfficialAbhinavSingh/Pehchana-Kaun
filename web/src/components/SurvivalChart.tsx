@@ -42,7 +42,11 @@ export default function SurvivalChart({
     );
   }
 
-  const points = curve;
+  // The API lists event/censoring times only; KM survival is 1 until the first one.
+  const points: SurvivalPoint[] =
+    curve[0].t > 0
+      ? [{ t: 0, survival: 1, at_risk: curve[0].at_risk, events: 0, ci_low: null, ci_high: null }, ...curve]
+      : curve;
 
   // Helper coordinate mappers
   const getX = (t: number) => padding.left + (Math.min(t, maxT) / maxT) * chartWidth;
