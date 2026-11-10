@@ -4,7 +4,7 @@ detection.detect_accusations is still TODO(WS2): happy-path tests monkeypatch it
 fake so the orchestration itself is covered without depending on the real detector.
 """
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 import httpx
 import pytest
@@ -249,3 +249,72 @@ def test_process_all_failed_retries_only_failed_calls(fake_detector):
 
     assert {c.id for c in results} == {failed_no_recording.id}
     assert get_call(untouched.id).processing_error is None
+
+
+# --- stuck calls (pk process --stuck) ---------------------------------------------------
+
+
+def _ended(call: Call, minutes_ago: float) -> Call:
+    with db.get_sessionmaker()() as s:
+        row = s.get(Call, call.id)
+        assert row is not None
+        row.ended_at = datetime.now(UTC) - timedelta(minutes=minutes_ago)
+        s.commit()
+    return call
+
+
+def test_stuck_calls_finds_recorded_calls_whose_job_was_lost():
+    lost = _ended(make_call(), minutes_ago=30)  # recording stored, job never ran
+    still_running = _ended(make_call(), minutes_ago=1)  # job may be running right now
+    no_recording = _ended(make_call(recording_url=None), minutes_ago=30)
+    scored = _ended(make_call(status=CallStatus.PROCESSED), minutes_ago=30)
+    failed = _ended(make_call(status=CallStatus.FAILED), minutes_ago=30)
+    errored = _ended(make_call(), minutes_ago=30)
+    with db.get_sessionmaker()() as s:
+        row = s.get(Call, errored.id)
+        assert row is not None
+        row.processing_error = "DeepgramError: 500"  # --all-failed's job, not --stuck's
+        s.commit()
+
+    with db.get_sessionmaker()() as s:
+        found = {c.id for c in pipeline.stuck_calls(s)}
+    assert found == {lost.id}
+    assert not found & {still_running.id, no_recording.id, scored.id, failed.id, errored.id}
+
+
+@respx.mock
+def test_process_stuck_scores_the_lost_call(fake_detector):
+    respx.post(URL).mock(return_value=httpx.Response(200, json=RESPONSE))
+    lost = _ended(make_call(), minutes_ago=30)
+    with db.get_sessionmaker()() as s:
+        results = pipeline.process_stuck(s, settings=SETTINGS)
+    assert [c.id for c in results] == [lost.id]
+    assert get_call(lost.id).status == CallStatus.PROCESSED
+
+
+def test_cli_process_takes_exactly_one_target():
+    from typer.testing import CliRunner
+
+    from pehchana.cli import app
+
+    runner = CliRunner()
+    both = runner.invoke(app, ["process", "--all-failed", "--stuck"])
+    assert both.exit_code == 2 and "exactly one of" in both.output
+    nothing = runner.invoke(app, ["process", "--stuck"])
+    assert nothing.exit_code == 0 and "nothing to process" in nothing.output
+
+
+def test_cli_dry_run_lists_stuck_calls_and_processes_none():
+    from typer.testing import CliRunner
+
+    from pehchana.cli import app
+
+    lost = _ended(make_call(), minutes_ago=30)
+    result = CliRunner().invoke(app, ["process", "--stuck", "--dry-run"])
+    assert result.exit_code == 0
+    assert f"would process {lost.id} (queued)" in result.output
+    assert "1 call(s); nothing processed (dry run)" in result.output
+    assert get_call(lost.id).status == CallStatus.ENDED  # untouched
+
+    with_id = CliRunner().invoke(app, ["process", lost.id, "--dry-run"])
+    assert with_id.exit_code == 2

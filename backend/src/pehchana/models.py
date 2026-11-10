@@ -10,6 +10,7 @@ up, which is also when the Plivo session recording starts.
 from __future__ import annotations
 
 import enum
+import logging
 import uuid
 from datetime import UTC, datetime
 
@@ -27,6 +28,8 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from pehchana.db import Base
+
+log = logging.getLogger(__name__)
 
 
 def _uuid() -> str:
@@ -48,6 +51,22 @@ class CallStatus(enum.StrEnum):
     ENDED = "ended"  # hung up, waiting for recording/processing
     PROCESSED = "processed"  # transcript + detection done
     FAILED = "failed"  # nobody answered, or processing failed permanently
+
+
+# A call still in progress: the only states a live callback (accusation, Bolna execution
+# link, answer-URL retry) may attach to.
+OPEN_STATUSES = (CallStatus.ROUTED, CallStatus.LIVE)
+
+
+class CallStage(enum.StrEnum):
+    """Where a call is in its life, read off its fields (see ``Call.stage``). Not stored."""
+
+    IN_CALL = "in_call"  # routed or live
+    AWAITING_RECORDING = "awaiting_recording"  # ended, no recording yet
+    QUEUED = "queued"  # ended with a recording, not processed yet (or its job was lost)
+    PROCESSING_ERROR = "processing_error"  # ended, last processing run failed; rerunnable
+    PROCESSED = "processed"
+    FAILED = "failed"
 
 
 class Source(enum.StrEnum):
@@ -102,9 +121,39 @@ class Call(Base):
     )
 
     @property
+    def stage(self) -> CallStage:
+        """Why a call is or is not on the leaderboard yet, from status, recording and error."""
+        if self.status == CallStatus.PROCESSED:
+            return CallStage.PROCESSED
+        if self.status == CallStatus.FAILED:
+            return CallStage.FAILED
+        if self.status in OPEN_STATUSES:
+            return CallStage.IN_CALL
+        if not self.recording_url:
+            return CallStage.AWAITING_RECORDING
+        if self.processing_error:
+            return CallStage.PROCESSING_ERROR
+        return CallStage.QUEUED
+
+    def set_status(self, status: CallStatus, *, via: str) -> None:
+        """Change ``status`` and log the move, so a call's history can be read from logs.
+
+        ``via`` names what moved it (``"plivo.dial-status"``, ``"pipeline"``, ...). Logs no
+        caller data. The caller decides whether the move is allowed and commits.
+        """
+        if status != self.status:
+            log.info("call %s: %s -> %s via %s", self.id, _value(self.status), status.value, via)
+        self.status = status
+
+    @property
     def first_accusation_s(self) -> float | None:
         times = [a.at_s for a in self.accusations if a.at_s is not None]
         return min(times) if times else None
+
+
+def _value(status: CallStatus | None) -> str:
+    # A Call built in Python has no status until it is flushed (the column default).
+    return status.value if status is not None else "new"
 
 
 class AccusationSource(enum.StrEnum):

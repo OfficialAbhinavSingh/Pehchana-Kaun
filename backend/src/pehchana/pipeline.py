@@ -20,8 +20,9 @@ safe to rerun) rather than silently producing a call with no accusations.
 from __future__ import annotations
 
 import logging
+from datetime import timedelta
 
-from sqlalchemy import delete, select
+from sqlalchemy import delete, or_, select
 from sqlalchemy.orm import Session
 
 from pehchana.config import Settings, get_settings
@@ -30,6 +31,10 @@ from pehchana.integrations.deepgram import ChannelTranscript, transcribe_url
 from pehchana.models import Accusation, AccusationSource, Call, CallStatus, utcnow
 
 log = logging.getLogger(__name__)
+
+# A call that ended with a recording this long ago and is still not processed has lost
+# its background job (a restart or deploy mid-run). Younger ones may still be running.
+STUCK_AFTER = timedelta(minutes=10)
 
 
 class ProcessingError(Exception):
@@ -104,7 +109,7 @@ def process_call(call_id: str, *, session: Session, settings: Settings | None = 
         )
 
     call.processing_error = None
-    call.status = CallStatus.PROCESSED
+    call.set_status(CallStatus.PROCESSED, via="pipeline")
     call.ended_at = call.ended_at or utcnow()
     session.flush()
 
@@ -120,12 +125,44 @@ def process_call(call_id: str, *, session: Session, settings: Settings | None = 
     return call
 
 
-def process_all_failed(session: Session, *, settings: Settings | None = None) -> list[Call]:
-    """Rerun every call that previously failed processing (``processing_error`` set,
-    never reached ``PROCESSED``). Used by ``pk process --all-failed``."""
-    ids = session.scalars(
-        select(Call.id).where(
-            Call.processing_error.is_not(None), Call.status != CallStatus.PROCESSED
+def failed_calls(session: Session) -> list[Call]:
+    """Calls whose last processing run failed (``processing_error`` set) and that never
+    reached ``PROCESSED``."""
+    return list(
+        session.scalars(
+            select(Call).where(
+                Call.processing_error.is_not(None), Call.status != CallStatus.PROCESSED
+            )
         )
-    ).all()
+    )
+
+
+def process_all_failed(session: Session, *, settings: Settings | None = None) -> list[Call]:
+    """Rerun every call ``failed_calls`` finds. Used by ``pk process --all-failed``."""
+    ids = [c.id for c in failed_calls(session)]
+    return [process_call(call_id, session=session, settings=settings) for call_id in ids]
+
+
+def stuck_calls(session: Session, *, older_than: timedelta = STUCK_AFTER) -> list[Call]:
+    """Ended calls that have a recording but were never processed and have no
+    ``processing_error``: the background job was lost before it ran or finished.
+    ``process_all_failed`` cannot see these (it only reruns recorded failures)."""
+    cutoff = utcnow() - older_than
+    return list(
+        session.scalars(
+            select(Call)
+            .where(
+                Call.status == CallStatus.ENDED,
+                Call.recording_url.is_not(None),
+                Call.processing_error.is_(None),
+                or_(Call.ended_at.is_(None), Call.ended_at < cutoff),
+            )
+            .order_by(Call.started_at)
+        )
+    )
+
+
+def process_stuck(session: Session, *, settings: Settings | None = None) -> list[Call]:
+    """Process every call ``stuck_calls`` finds. Used by ``pk process --stuck``."""
+    ids = [c.id for c in stuck_calls(session)]
     return [process_call(call_id, session=session, settings=settings) for call_id in ids]

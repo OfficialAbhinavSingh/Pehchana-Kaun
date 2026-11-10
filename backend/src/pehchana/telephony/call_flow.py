@@ -14,10 +14,19 @@ from datetime import datetime, timedelta
 from sqlalchemy import func, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
+from sqlalchemy.orm.attributes import set_committed_value
 
 from pehchana.arms import Arm, NoArmAvailable, choose_arm, eligible_arms
 from pehchana.config import Settings
-from pehchana.models import Call, CallStatus, Channel, ShiftOverride, Source, utcnow
+from pehchana.models import (
+    OPEN_STATUSES,
+    Call,
+    CallStatus,
+    Channel,
+    ShiftOverride,
+    Source,
+    utcnow,
+)
 from pehchana.telephony.base import CallPlan, ProviderResponse, TelephonyProvider
 from pehchana.telephony.recordings import InvalidRecording, validate_recording_url
 
@@ -30,7 +39,6 @@ SIMULATED_CALLER_PREFIX = "+9100000000"
 
 # How far back "recent calls" looks when balancing arms.
 BALANCE_WINDOW = timedelta(hours=6)
-_OPEN = (CallStatus.ROUTED, CallStatus.LIVE)
 
 
 def hash_caller(number: str | None, salt: str) -> str | None:
@@ -127,7 +135,7 @@ def _replay(
 ) -> ProviderResponse:
     """Answer a retried webhook again with the arm already chosen for this call."""
     arm = next((a for a in arms if a.id == call.arm_id), None)
-    if arm is None or call.status not in _OPEN:
+    if arm is None or call.status not in OPEN_STATUSES:
         # Retry of a call that already finished, or whose arm left the config.
         log.warning(
             "answer retry for call %s not replayed: status=%s arm=%s%s",
@@ -189,14 +197,16 @@ def finish_dial(
             call.answered_at = call.ended_at - timedelta(seconds=result.duration_s)
         session.commit()
         return
-    if call.status not in _OPEN:
+    if call.status not in OPEN_STATUSES:
         return  # late or duplicate callback must not rewrite a finished call
+    # FAILED never counts in the stats.
+    target = CallStatus.ENDED if result.answered else CallStatus.FAILED
+    if not move_unless_processed(session, call, target, via=f"{provider.name}.dial-status"):
+        session.commit()
+        return  # scored while this callback ran: the pipeline's numbers stand
     now = utcnow()
     call.ended_at = now
-    if not result.answered:
-        call.status = CallStatus.FAILED  # never counts in the stats
-    else:
-        call.status = CallStatus.ENDED
+    if result.answered:
         call.duration_s = result.duration_s
         if result.duration_s is not None:
             call.answered_at = now - timedelta(seconds=result.duration_s)
@@ -228,16 +238,54 @@ def attach_recording(
         raise InvalidRecording(str(e)) from e
     _check_belongs(call, provider, event.provider_call_id)
     validate_recording_url(event.url, settings.recording_host_allowlist)
-    claimed = session.scalars(
-        update(Call)
-        .where(Call.id == call.id, Call.recording_url.is_(None))
-        .values(recording_url=event.url, recording_caller_channel=event.caller_channel)
-        .returning(Call.id)
-    ).first()
+    claimed = claim_recording(session, call, event.url, event.caller_channel)
     session.commit()
     session.refresh(call)  # the UPDATE bypassed the ORM object
-    if claimed is None:
+    if not claimed:
         if call.recording_url != event.url:
             log.warning("call %s already has a recording; ignoring a different one", call.id)
         return False
     return call.status not in (CallStatus.FAILED, CallStatus.PROCESSED)
+
+
+def claim_recording(session: Session, call: Call, url: str, caller_channel: int | None) -> bool:
+    """Store ``url`` as the call's recording unless it already has one.
+
+    One conditional UPDATE, so of two concurrent callbacks (Plivo's, or Bolna's) exactly
+    one gets ``True`` and queues the pipeline. The URL must already be validated. Does
+    not commit; the ORM object is stale until the caller refreshes it.
+    """
+    claimed = session.scalars(
+        update(Call)
+        .where(Call.id == call.id, Call.recording_url.is_(None))
+        .values(recording_url=url, recording_caller_channel=caller_channel)
+        .returning(Call.id)
+    ).first()
+    return claimed is not None
+
+
+def move_unless_processed(session: Session, call: Call, status: CallStatus, *, via: str) -> bool:
+    """Set ``status`` unless the row is already PROCESSED, in one conditional UPDATE.
+
+    The pipeline can score a call between a callback loading it and committing, so
+    checking the loaded copy is not enough: a plain attribute write would put a scored
+    call back and drop it from the leaderboard. Returns whether the row moved; ``call``
+    then shows the status the row really has. Does not commit.
+    """
+    old = call.status
+    moved = (
+        session.scalars(
+            update(Call)
+            .where(Call.id == call.id, Call.status != CallStatus.PROCESSED)
+            .values(status=status)
+            .returning(Call.id)
+            .execution_options(synchronize_session=False)
+        ).first()
+        is not None
+    )
+    set_committed_value(call, "status", status if moved else CallStatus.PROCESSED)
+    if not moved:
+        log.info("call %s: already processed, left as is (late %s)", call.id, via)
+    elif old != status:
+        log.info("call %s: %s -> %s via %s", call.id, old.value, status.value, via)
+    return moved

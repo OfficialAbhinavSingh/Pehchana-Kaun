@@ -29,6 +29,7 @@ from pehchana.api.deps import ArmsDep, SessionDep, SettingsDep
 from pehchana.config import Settings
 from pehchana.integrations.bolna import TERMINAL_STATUSES
 from pehchana.models import (
+    OPEN_STATUSES,
     Accusation,
     AccusationSource,
     Call,
@@ -37,7 +38,12 @@ from pehchana.models import (
     Source,
     utcnow,
 )
-from pehchana.telephony.call_flow import SIMULATED_CALLER_PREFIX, hash_caller
+from pehchana.telephony.call_flow import (
+    SIMULATED_CALLER_PREFIX,
+    claim_recording,
+    hash_caller,
+    move_unless_processed,
+)
 
 log = logging.getLogger(__name__)
 
@@ -50,7 +56,6 @@ ACCUSE_LOOKBACK = timedelta(minutes=10)
 # > Linking a Plivo call to its Bolna execution).
 LINK_WINDOW_BEFORE = timedelta(seconds=30)
 LINK_WINDOW_AFTER = timedelta(seconds=60)
-_OPEN = (CallStatus.ROUTED, CallStatus.LIVE)
 
 # Example wording straight from #15; the agent's own persona prompt also knows to
 # reveal honestly, this is the belt to that braces.
@@ -113,7 +118,7 @@ def accuse_bot(
             .where(
                 Call.arm_id == arm.id,
                 Call.caller_hash == caller_hash,
-                Call.status.in_(_OPEN),
+                Call.status.in_(OPEN_STATUSES),
                 Call.started_at >= now - ACCUSE_LOOKBACK,
             )
             .order_by(Call.started_at.desc())
@@ -126,7 +131,7 @@ def accuse_bot(
             session.scalars(
                 select(Call).where(
                     Call.arm_id == arm.id,
-                    Call.status.in_(_OPEN),
+                    Call.status.in_(OPEN_STATUSES),
                     Call.started_at >= now - ACCUSE_LOOKBACK,
                 )
             )
@@ -200,7 +205,7 @@ def _find_call_for_execution(
         session.scalars(
             select(Call).where(
                 Call.arm_id == arm_id,
-                Call.status.in_(_OPEN),
+                Call.status.in_(OPEN_STATUSES),
                 Call.started_at >= window[0],
                 Call.started_at <= window[1],
             )
@@ -258,7 +263,10 @@ async def execution_webhook(
     caller_hash = hash_caller(str(user_number), settings.caller_hash_salt) if user_number else None
     duration_s = float(payload.get("conversation_duration") or telephony.get("duration") or 0.0)
 
-    # Direct call fallback: if no matching Call was found (direct dial to Bolna), create it
+    # Direct call fallback: if no matching Call was found (direct dial to Bolna), create it.
+    # Two copies of this webhook racing past the idempotency check above would both get
+    # here; the unique bolna_execution_id makes the second commit fail with a 500, Bolna
+    # retries it, and the retry returns "already attached". Safe, one noisy log line.
     if call is None:
         channel = Channel.PHONE if user_number else Channel.WEB
         source = (
@@ -286,7 +294,10 @@ async def execution_webhook(
 
     call.bolna_execution_id = execution_id
     call.bolna_payload = payload
-    call.status = CallStatus.ENDED
+    # The router's recording callback can win the race and the pipeline then scores the
+    # call before (or while) Bolna reports the execution done. Moving it back to ENDED
+    # would drop a scored call from the leaderboard with nothing to reprocess it.
+    move_unless_processed(session, call, CallStatus.ENDED, via="bolna.webhook")
     if duration_s > 0 and (call.duration_s is None or call.duration_s == 0):
         call.duration_s = duration_s
     if call.ended_at is None:
@@ -300,10 +311,12 @@ async def execution_webhook(
             from pehchana.telephony.recordings import validate_recording_url
 
             validate_recording_url(recording_url, settings.recording_host_allowlist)
-            call.recording_url = recording_url
-            queue_processing = True
         except Exception as e:
             log.warning("bolna webhook: invalid recording_url for %s: %s", execution_id, e)
+        else:
+            # Same atomic claim as the router's recording callback: of two webhooks
+            # racing for this call, only one queues the (paid) pipeline.
+            queue_processing = claim_recording(session, call, recording_url, None)
 
     session.commit()
 

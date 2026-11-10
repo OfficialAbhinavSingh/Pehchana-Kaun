@@ -284,22 +284,44 @@ def process(
     all_failed: bool = typer.Option(
         False, "--all-failed", help="Rerun every call that previously failed processing."
     ),
+    stuck: bool = typer.Option(
+        False,
+        "--stuck",
+        help="Process ended calls whose recording arrived but whose job was lost "
+        "(no error recorded, ended over 10 minutes ago).",
+    ),
+    dry_run: bool = typer.Option(
+        False,
+        "--dry-run",
+        help="With --all-failed or --stuck: list the calls it would process (each one is a "
+        "paid Deepgram run) and process none.",
+    ),
 ) -> None:
     """(Re-)run post-call processing: Deepgram, accusation detection, status=processed."""
-    if bool(call_id) == all_failed:
-        typer.echo("error: pass exactly one of CALL_ID or --all-failed", err=True)
+    if [bool(call_id), all_failed, stuck].count(True) != 1:
+        typer.echo("error: pass exactly one of CALL_ID, --all-failed or --stuck", err=True)
+        raise typer.Exit(code=2)
+    if dry_run and call_id:
+        typer.echo("error: --dry-run goes with --all-failed or --stuck", err=True)
         raise typer.Exit(code=2)
 
     from pehchana import pipeline
     from pehchana.db import get_sessionmaker
 
     with get_sessionmaker()() as session:
+        if dry_run:
+            found = pipeline.failed_calls(session) if all_failed else pipeline.stuck_calls(session)
+            for call in found:
+                typer.echo(f"would process {call.id} ({call.stage.value})")
+            typer.echo(f"{len(found)} call(s); nothing processed (dry run)")
+            return
         try:
-            calls = (
-                pipeline.process_all_failed(session)
-                if all_failed
-                else [pipeline.process_call(call_id, session=session)]
-            )
+            if all_failed:
+                calls = pipeline.process_all_failed(session)
+            elif stuck:
+                calls = pipeline.process_stuck(session)
+            else:
+                calls = [pipeline.process_call(call_id, session=session)]
         except LookupError as e:
             typer.echo(f"error: {e}", err=True)
             raise typer.Exit(code=2) from e

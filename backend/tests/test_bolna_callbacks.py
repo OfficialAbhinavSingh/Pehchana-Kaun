@@ -334,3 +334,89 @@ def test_accuse_on_web_call_with_no_phone_number(bolna):
         accusation = s.query(Accusation).filter_by(call_id=web_call_id).first()
         assert accusation is not None
         assert accusation.phrase == "tum bot ho"
+
+
+# --- call state: no backward moves, one recording winner -------------------------------
+
+
+def test_webhook_keeps_a_call_the_pipeline_already_scored_processed(bolna, monkeypatch):
+    # The router's recording callback won the race and the pipeline scored the call
+    # before Bolna reported the execution done. ENDED again would drop it from the board.
+    processed = []
+    monkeypatch.setattr(
+        "pehchana.pipeline.process_call", lambda call_id, **kw: processed.append(call_id)
+    )
+    call = make_call(
+        started_at=datetime.fromisoformat("2026-10-28T18:00:10+00:00"),
+        duration_s=37.0,
+        status=CallStatus.PROCESSED,
+    )
+    with db.get_sessionmaker()() as s:
+        row = s.get(Call, call.id)
+        assert row is not None
+        row.recording_url = "https://media.plivo.com/router.mp3"
+        s.commit()
+
+    r = bolna.post("/bolna/webhook", json=EXECUTION, headers={"x-bolna-webhook-secret": "shh"})
+    assert r.json() == {"attached": call.id}
+    saved = get_call(call.id)
+    assert saved.status == CallStatus.PROCESSED
+    assert saved.bolna_execution_id == EXECUTION["id"]  # the payload is still attached
+    assert saved.recording_url == "https://media.plivo.com/router.mp3"
+    assert processed == []
+
+
+def test_webhook_does_not_queue_a_recording_another_callback_claimed_first(bolna, monkeypatch):
+    # The router's recording lands after this webhook loaded the call but before it
+    # stored Bolna's: the first recording wins and the pipeline is queued once, not twice.
+    processed = []
+    monkeypatch.setattr(
+        "pehchana.pipeline.process_call", lambda call_id, **kw: processed.append(call_id)
+    )
+    call = make_call(
+        started_at=datetime.fromisoformat("2026-10-28T18:00:10+00:00"), duration_s=37.0
+    )
+
+    def router_recording_lands(url: str, allowlist: object) -> None:
+        with db.get_sessionmaker()() as other:
+            row = other.get(Call, call.id)
+            assert row is not None
+            row.recording_url = "https://media.plivo.com/router.mp3"
+            other.commit()
+
+    monkeypatch.setattr(
+        "pehchana.telephony.recordings.validate_recording_url", router_recording_lands
+    )
+    r = bolna.post("/bolna/webhook", json=EXECUTION, headers={"x-bolna-webhook-secret": "shh"})
+    assert r.json() == {"attached": call.id}
+    assert get_call(call.id).recording_url == "https://media.plivo.com/router.mp3"
+    assert processed == []
+
+
+def test_webhook_does_not_unscore_a_call_scored_while_it_was_running(bolna, monkeypatch):
+    # The webhook loads the call while it is still open; the pipeline scores it before
+    # the webhook commits. Checking the loaded copy is not enough: the write itself must
+    # refuse to overwrite PROCESSED.
+    from pehchana.api import bolna as bolna_api
+
+    real_find = bolna_api._find_call_for_execution
+    call = make_call(
+        started_at=datetime.fromisoformat("2026-10-28T18:00:10+00:00"), duration_s=37.0
+    )
+
+    def find_then_pipeline_scores_it(*args, **kwargs):
+        found = real_find(*args, **kwargs)
+        with db.get_sessionmaker()() as pipeline_session:
+            row = pipeline_session.get(Call, call.id)
+            assert row is not None
+            row.status = CallStatus.PROCESSED  # scored from the router's recording
+            row.recording_url = "https://media.plivo.com/router.mp3"
+            pipeline_session.commit()
+        return found  # still says LIVE
+
+    monkeypatch.setattr(bolna_api, "_find_call_for_execution", find_then_pipeline_scores_it)
+    r = bolna.post("/bolna/webhook", json=EXECUTION, headers={"x-bolna-webhook-secret": "shh"})
+    assert r.json() == {"attached": call.id}
+    saved = get_call(call.id)
+    assert saved.status == CallStatus.PROCESSED
+    assert saved.bolna_execution_id == EXECUTION["id"]
