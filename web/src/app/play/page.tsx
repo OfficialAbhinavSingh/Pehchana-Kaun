@@ -134,7 +134,7 @@ export default function PlayPage() {
         call.stop().catch(() => {});
         if (err.code === "microphone_denied") {
           setErrorMessage(
-            "Microphone permission was denied. Please allow microphone access in your browser to speak with Priya."
+            "Microphone permission was denied. Please allow microphone access in your browser to start the call."
           );
         } else {
           setErrorMessage(err.message || "Voice call failed to connect.");
@@ -159,7 +159,7 @@ export default function PlayPage() {
         (e instanceof Error && (e.name === "NotAllowedError" || e.name === "PermissionDeniedError"))
       ) {
         setErrorMessage(
-          "Microphone permission was denied. Please allow microphone access in your browser to speak with Priya."
+          "Microphone permission was denied. Please allow microphone access in your browser to start the call."
         );
       } else {
         const msg = err?.message || (e instanceof Error ? e.message : "Could not connect to voice server.");
@@ -370,8 +370,8 @@ export default function PlayPage() {
                   BROWSER GAME / LIVE AUDIO WEBRTC
                 </div>
                 <p className="text-sm text-[#605d5d] leading-relaxed">
-                  Your browser will ask for microphone access. Connects directly to Priya over high-fidelity
-                  Opus audio, no app or plugin needed.
+                  Your browser will ask for microphone access. Connects you to one of our AI voices over
+                  high-fidelity Opus audio, no app or plugin needed.
                 </p>
 
                 {step === "error" && (
@@ -386,7 +386,7 @@ export default function PlayPage() {
                   onClick={startBrowserGame}
                   className="flex h-12 w-full items-center justify-center bg-[#ec3013] font-mono text-xs font-bold uppercase tracking-wider text-[#f3f2f2] hover:bg-[#dd2b0f] shadow-[4px_4px_0_#201e1d] disabled:opacity-60 transition-all"
                 >
-                  {step === "connecting" ? "Connecting to Priya…" : "Play in browser ↗"}
+                  {step === "connecting" ? "Connecting to your voice…" : "Play in browser ↗"}
                 </button>
 
                 <div className="pt-2 border-t-2 border-[#201e1d]">
@@ -435,7 +435,7 @@ export default function PlayPage() {
                   </div>
                   <div className="mt-4 font-mono text-xs text-[#ec3013] font-bold flex items-center justify-center gap-2">
                     <span className="h-2 w-2 bg-[#ec3013] animate-ping" />
-                    {isSpeaking ? "PRIYA IS SPEAKING..." : "LIVE TWO-WAY AUDIO CONNECTED"}
+                    {isSpeaking ? "THE VOICE IS SPEAKING..." : "LIVE TWO-WAY AUDIO CONNECTED"}
                   </div>
 
                   <div className="mt-6">
@@ -470,10 +470,11 @@ export default function PlayPage() {
 
                 <div className=" border-2 border-[#201e1d] bg-[#ffffff] p-7 space-y-3">
                   <h3 className="text-lg font-bold font-display text-[#201e1d]">
-                    Your result goes on the leaderboard
+                    Browser games aren&apos;t scored
                   </h3>
                   <p className="text-sm text-[#605d5d] leading-relaxed">
-                    Results are counted into the public, anonymous leaderboard. See if Priya fooled you!
+                    The leaderboard only counts phone calls, which we can time to the second. To be
+                    counted, call the number instead.
                   </p>
                 </div>
 
@@ -502,8 +503,8 @@ export default function PlayPage() {
                   hung up.
                 </h1>
                 <p className="mt-4 text-base text-[#605d5d] leading-relaxed">
-                  Your conversation has ended. The audio recording is queued for timestamped transcription,
-                  giveaway tagging, and Turing Clock evaluation.
+                  Your conversation has ended. Browser games are recorded for research but don&apos;t
+                  count on the leaderboard.
                 </p>
               </div>
 
@@ -512,8 +513,9 @@ export default function PlayPage() {
                   What happens next?
                 </h3>
                 <p className="text-sm text-[#605d5d] leading-relaxed">
-                  Deepgram transcribes the caller channel to verify any accusation phrase (&ldquo;Tum bot ho!&rdquo;),
-                  and the result is factored into the public Kaplan-Meier survival curve.
+                  Want a scored game? Call the number. Phone calls are recorded in stereo, so Deepgram can
+                  find the exact second you said &ldquo;Tum bot ho!&rdquo;, and that goes into the public
+                  Kaplan-Meier survival curve.
                 </p>
               </div>
             </div>
@@ -524,7 +526,7 @@ export default function PlayPage() {
                   Check the scores
                 </h3>
                 <p className="text-sm text-[#605d5d] leading-relaxed">
-                  See how Priya and the other AI voices stack up against the human control baseline.
+                  See how the AI voices stack up against the human control baseline.
                 </p>
 
                 <Link
