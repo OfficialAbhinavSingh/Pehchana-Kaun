@@ -3,6 +3,7 @@
 from datetime import UTC, datetime
 
 import pytest
+import respx
 
 from pehchana import db
 from pehchana.models import (
@@ -371,8 +372,69 @@ def test_llm_tagging_missing_key_gracefully_skips(monkeypatch):
         {"channel": 1, "language": "hi", "words": words(("haan", 2.0, 2.5))},
     ]
     call = make_call(transcript=transcript, accused_at=10.0)
-    empty_settings = Settings(anthropic_api_key="", groq_api_key="", gemini_api_key="")
+    empty_settings = Settings(
+        anthropic_api_key="", groq_api_key="", openrouter_api_key="", gemini_api_key=""
+    )
 
     with db.get_sessionmaker()() as s:
         result = tag_call_llm(call.id, session=s, settings=empty_settings)
     assert result == []
+
+
+# --- OpenRouter -------------------------------------------------------------------------
+
+OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
+
+
+def _openrouter_settings():
+    from pehchana.config import Settings
+
+    return Settings(
+        anthropic_api_key="", groq_api_key="", openrouter_api_key="or-test", gemini_api_key=""
+    )
+
+
+def _accused_call():
+    transcript = [
+        {"channel": 0, "language": "hi", "words": words(("hello", 1.0, 1.5))},
+        {"channel": 1, "language": "hi", "words": words(("haan", 2.0, 2.5))},
+    ]
+    return make_call(transcript=transcript, accused_at=10.0)
+
+
+@respx.mock
+def test_openrouter_tagging_stores_giveaways():
+    import json
+
+    import httpx
+
+    content = json.dumps(
+        {"giveaways": [{"tag": "flat_emotion", "evidence": "haan", "confidence": 0.7}]}
+    )
+    route = respx.post(OPENROUTER_URL).mock(
+        return_value=httpx.Response(200, json={"choices": [{"message": {"content": content}}]})
+    )
+    call = _accused_call()
+    with db.get_sessionmaker()() as s:
+        rows = tag_call_llm(call.id, session=s, settings=_openrouter_settings())
+
+    assert [(r.tag, r.method, r.evidence) for r in rows] == [("flat_emotion", "llm", "haan")]
+    sent = route.calls.last.request
+    assert sent.headers["Authorization"] == "Bearer or-test"
+    body = json.loads(sent.content)
+    assert body["model"] == "meta-llama/llama-3.3-70b-instruct"
+    assert body["response_format"] == {"type": "json_object"}
+
+
+@respx.mock
+def test_openrouter_out_of_credit_skips_tagging_without_leaking_the_key(caplog):
+    import httpx
+
+    respx.post(OPENROUTER_URL).mock(return_value=httpx.Response(402, json={"error": "credit"}))
+    call = _accused_call()
+    with db.get_sessionmaker()() as s:
+        rows = tag_call_llm(call.id, session=s, settings=_openrouter_settings())
+
+    assert rows == []
+    assert "OpenRouter tagging failed" in caplog.text
+    assert "or-test" not in caplog.text

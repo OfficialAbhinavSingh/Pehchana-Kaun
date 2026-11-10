@@ -71,10 +71,12 @@ class Settings(BaseSettings):
     deepgram_model: str = "nova-3"
     deepgram_language: str = "multi"
 
-    # Claude (post-call giveaway tagging; free fallbacks: Groq or Gemini)
+    # Claude (post-call giveaway tagging; fallbacks: Groq, OpenRouter or Gemini)
     anthropic_api_key: str = ""
     tagger_model: str = "claude-opus-5"
     groq_api_key: str = ""
+    openrouter_api_key: str = ""
+    openrouter_model: str = "meta-llama/llama-3.3-70b-instruct"
     gemini_api_key: str = ""
 
     # Leaderboard

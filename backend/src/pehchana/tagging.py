@@ -404,7 +404,45 @@ def tag_call_llm(
             log.warning("Groq tagging fallback failed for %s: %s", call_id, e)
             return []
 
-    # 4. Free Gemini fallback (if GEMINI_API_KEY is configured)
+    # 4. OpenRouter (if OPENROUTER_API_KEY is configured): OpenAI-compatible, like Groq
+    elif getattr(active_settings, "openrouter_api_key", None):
+        try:
+            import json
+
+            import httpx
+
+            openrouter_key = active_settings.openrouter_api_key
+            schema_json = json.dumps(LLMTaggerResponse.model_json_schema())
+            prompt_content = (
+                _LLM_PROMPT.format(start=window_start, end=window_end)
+                + f"\n\nTranscript:\n{dialogue}"
+                + f"\nRespond strictly with JSON adhering to schema: {schema_json}"
+            )
+            with httpx.Client(timeout=15.0) as http_client:
+                r = http_client.post(
+                    "https://openrouter.ai/api/v1/chat/completions",
+                    headers={
+                        "Authorization": f"Bearer {openrouter_key}",
+                        "X-Title": "Pehchana Kaun?",
+                    },
+                    json={
+                        "model": active_settings.openrouter_model,
+                        "messages": [{"role": "user", "content": prompt_content}],
+                        "response_format": {"type": "json_object"},
+                    },
+                )
+                r.raise_for_status()
+                parsed = LLMTaggerResponse.model_validate_json(
+                    r.json()["choices"][0]["message"]["content"]
+                )
+                items = parsed.giveaways
+        except Exception as e:
+            # The error names the status (e.g. 402 when the key's credit limit is hit),
+            # never the key: httpx does not put request headers in its messages.
+            log.warning("OpenRouter tagging failed for %s: %s", call_id, e)
+            return []
+
+    # 5. Free Gemini fallback (if GEMINI_API_KEY is configured)
     elif getattr(active_settings, "gemini_api_key", None):
         try:
             import json
@@ -436,7 +474,9 @@ def tag_call_llm(
             log.warning("Gemini tagging fallback failed for %s: %s", call_id, e)
             return []
     else:
-        log.info("No LLM key configured (Anthropic, Groq, Gemini); skipping LLM tagging.")
+        log.info(
+            "No LLM key configured (Anthropic, Groq, OpenRouter, Gemini); skipping LLM tagging."
+        )
         return []
 
     rows: list[Giveaway] = [
