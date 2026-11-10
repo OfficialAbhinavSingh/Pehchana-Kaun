@@ -290,16 +290,31 @@ def process(
         help="Process ended calls whose recording arrived but whose job was lost "
         "(no error recorded, ended over 10 minutes ago).",
     ),
+    dry_run: bool = typer.Option(
+        False,
+        "--dry-run",
+        help="With --all-failed or --stuck: list the calls it would process (each one is a "
+        "paid Deepgram run) and process none.",
+    ),
 ) -> None:
     """(Re-)run post-call processing: Deepgram, accusation detection, status=processed."""
     if [bool(call_id), all_failed, stuck].count(True) != 1:
         typer.echo("error: pass exactly one of CALL_ID, --all-failed or --stuck", err=True)
+        raise typer.Exit(code=2)
+    if dry_run and call_id:
+        typer.echo("error: --dry-run goes with --all-failed or --stuck", err=True)
         raise typer.Exit(code=2)
 
     from pehchana import pipeline
     from pehchana.db import get_sessionmaker
 
     with get_sessionmaker()() as session:
+        if dry_run:
+            found = pipeline.failed_calls(session) if all_failed else pipeline.stuck_calls(session)
+            for call in found:
+                typer.echo(f"would process {call.id} ({call.stage.value})")
+            typer.echo(f"{len(found)} call(s); nothing processed (dry run)")
+            return
         try:
             if all_failed:
                 calls = pipeline.process_all_failed(session)

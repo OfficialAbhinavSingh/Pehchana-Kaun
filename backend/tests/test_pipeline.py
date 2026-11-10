@@ -302,3 +302,19 @@ def test_cli_process_takes_exactly_one_target():
     assert both.exit_code == 2 and "exactly one of" in both.output
     nothing = runner.invoke(app, ["process", "--stuck"])
     assert nothing.exit_code == 0 and "nothing to process" in nothing.output
+
+
+def test_cli_dry_run_lists_stuck_calls_and_processes_none():
+    from typer.testing import CliRunner
+
+    from pehchana.cli import app
+
+    lost = _ended(make_call(), minutes_ago=30)
+    result = CliRunner().invoke(app, ["process", "--stuck", "--dry-run"])
+    assert result.exit_code == 0
+    assert f"would process {lost.id} (queued)" in result.output
+    assert "1 call(s); nothing processed (dry run)" in result.output
+    assert get_call(lost.id).status == CallStatus.ENDED  # untouched
+
+    with_id = CliRunner().invoke(app, ["process", lost.id, "--dry-run"])
+    assert with_id.exit_code == 2

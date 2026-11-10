@@ -459,3 +459,18 @@ def test_claim_recording_has_one_winner_and_keeps_the_first_url(client):
         b.commit()
         b.refresh(call_b)
         assert (call_b.recording_url, call_b.recording_caller_channel) == (GOOD + "1", 0)
+
+
+def test_dial_status_does_not_unscore_a_call_scored_while_it_was_running(client):
+    # Same race on the router side: the recording beat dial-status, and the pipeline
+    # scores the call after this callback loaded it but before it commits.
+    fake = FakeProvider()
+    with db.get_sessionmaker()() as s:
+        call_flow.start_call(session=s, provider=fake, settings=SETTINGS, arms=[AI], form=FAKE_IN)
+    with db.get_sessionmaker()() as dial, db.get_sessionmaker()() as pipeline_session:
+        stale = dial.scalars(select(Call)).one()  # still ROUTED
+        pipeline_session.scalars(select(Call)).one().status = CallStatus.PROCESSED
+        pipeline_session.commit()
+        call_flow.finish_dial(session=dial, provider=fake, call=stale, form={"ok": "1"})
+    with db.get_sessionmaker()() as s:
+        assert s.scalars(select(Call)).one().status == CallStatus.PROCESSED

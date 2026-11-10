@@ -14,6 +14,7 @@ from datetime import datetime, timedelta
 from sqlalchemy import func, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
+from sqlalchemy.orm.attributes import set_committed_value
 
 from pehchana.arms import Arm, NoArmAvailable, choose_arm, eligible_arms
 from pehchana.config import Settings
@@ -198,13 +199,14 @@ def finish_dial(
         return
     if call.status not in OPEN_STATUSES:
         return  # late or duplicate callback must not rewrite a finished call
+    # FAILED never counts in the stats.
+    target = CallStatus.ENDED if result.answered else CallStatus.FAILED
+    if not move_unless_processed(session, call, target, via=f"{provider.name}.dial-status"):
+        session.commit()
+        return  # scored while this callback ran: the pipeline's numbers stand
     now = utcnow()
     call.ended_at = now
-    via = f"{provider.name}.dial-status"
-    if not result.answered:
-        call.set_status(CallStatus.FAILED, via=via)  # never counts in the stats
-    else:
-        call.set_status(CallStatus.ENDED, via=via)
+    if result.answered:
         call.duration_s = result.duration_s
         if result.duration_s is not None:
             call.answered_at = now - timedelta(seconds=result.duration_s)
@@ -260,3 +262,30 @@ def claim_recording(session: Session, call: Call, url: str, caller_channel: int 
         .returning(Call.id)
     ).first()
     return claimed is not None
+
+
+def move_unless_processed(session: Session, call: Call, status: CallStatus, *, via: str) -> bool:
+    """Set ``status`` unless the row is already PROCESSED, in one conditional UPDATE.
+
+    The pipeline can score a call between a callback loading it and committing, so
+    checking the loaded copy is not enough: a plain attribute write would put a scored
+    call back and drop it from the leaderboard. Returns whether the row moved; ``call``
+    then shows the status the row really has. Does not commit.
+    """
+    old = call.status
+    moved = (
+        session.scalars(
+            update(Call)
+            .where(Call.id == call.id, Call.status != CallStatus.PROCESSED)
+            .values(status=status)
+            .returning(Call.id)
+            .execution_options(synchronize_session=False)
+        ).first()
+        is not None
+    )
+    set_committed_value(call, "status", status if moved else CallStatus.PROCESSED)
+    if not moved:
+        log.info("call %s: already processed, left as is (late %s)", call.id, via)
+    elif old != status:
+        log.info("call %s: %s -> %s via %s", call.id, old.value, status.value, via)
+    return moved

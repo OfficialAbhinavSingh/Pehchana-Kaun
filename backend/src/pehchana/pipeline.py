@@ -125,14 +125,21 @@ def process_call(call_id: str, *, session: Session, settings: Settings | None = 
     return call
 
 
-def process_all_failed(session: Session, *, settings: Settings | None = None) -> list[Call]:
-    """Rerun every call that previously failed processing (``processing_error`` set,
-    never reached ``PROCESSED``). Used by ``pk process --all-failed``."""
-    ids = session.scalars(
-        select(Call.id).where(
-            Call.processing_error.is_not(None), Call.status != CallStatus.PROCESSED
+def failed_calls(session: Session) -> list[Call]:
+    """Calls whose last processing run failed (``processing_error`` set) and that never
+    reached ``PROCESSED``."""
+    return list(
+        session.scalars(
+            select(Call).where(
+                Call.processing_error.is_not(None), Call.status != CallStatus.PROCESSED
+            )
         )
-    ).all()
+    )
+
+
+def process_all_failed(session: Session, *, settings: Settings | None = None) -> list[Call]:
+    """Rerun every call ``failed_calls`` finds. Used by ``pk process --all-failed``."""
+    ids = [c.id for c in failed_calls(session)]
     return [process_call(call_id, session=session, settings=settings) for call_id in ids]
 
 

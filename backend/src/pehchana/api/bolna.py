@@ -38,7 +38,12 @@ from pehchana.models import (
     Source,
     utcnow,
 )
-from pehchana.telephony.call_flow import SIMULATED_CALLER_PREFIX, claim_recording, hash_caller
+from pehchana.telephony.call_flow import (
+    SIMULATED_CALLER_PREFIX,
+    claim_recording,
+    hash_caller,
+    move_unless_processed,
+)
 
 log = logging.getLogger(__name__)
 
@@ -258,7 +263,10 @@ async def execution_webhook(
     caller_hash = hash_caller(str(user_number), settings.caller_hash_salt) if user_number else None
     duration_s = float(payload.get("conversation_duration") or telephony.get("duration") or 0.0)
 
-    # Direct call fallback: if no matching Call was found (direct dial to Bolna), create it
+    # Direct call fallback: if no matching Call was found (direct dial to Bolna), create it.
+    # Two copies of this webhook racing past the idempotency check above would both get
+    # here; the unique bolna_execution_id makes the second commit fail with a 500, Bolna
+    # retries it, and the retry returns "already attached". Safe, one noisy log line.
     if call is None:
         channel = Channel.PHONE if user_number else Channel.WEB
         source = (
@@ -286,11 +294,10 @@ async def execution_webhook(
 
     call.bolna_execution_id = execution_id
     call.bolna_payload = payload
-    if call.status != CallStatus.PROCESSED:
-        # The router's recording callback can win the race and the pipeline then scores
-        # the call before Bolna reports the execution done. Moving it back to ENDED
-        # would drop a scored call from the leaderboard with nothing to reprocess it.
-        call.set_status(CallStatus.ENDED, via="bolna.webhook")
+    # The router's recording callback can win the race and the pipeline then scores the
+    # call before (or while) Bolna reports the execution done. Moving it back to ENDED
+    # would drop a scored call from the leaderboard with nothing to reprocess it.
+    move_unless_processed(session, call, CallStatus.ENDED, via="bolna.webhook")
     if duration_s > 0 and (call.duration_s is None or call.duration_s == 0):
         call.duration_s = duration_s
     if call.ended_at is None:

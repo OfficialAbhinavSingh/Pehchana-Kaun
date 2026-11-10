@@ -143,6 +143,9 @@ export default function PlayPage() {
       });
 
       await call.start();
+      // Left the page while the browser was still asking for the mic: the stop() from
+      // that cleanup ran during start(), so make sure this call does not stay up.
+      if (!isCurrent()) call.stop().catch(() => {});
     } catch (e: unknown) {
       if (!isCurrent()) return;
       finished = true;
