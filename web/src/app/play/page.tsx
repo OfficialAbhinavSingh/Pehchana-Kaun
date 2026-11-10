@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Waveform from "@/components/Waveform";
 import { API_URL, GAME_NUMBER } from "@/lib/api";
@@ -30,16 +30,25 @@ export default function PlayPage() {
   const [isSpeaking, setIsSpeaking] = useState(false);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const callRef = useRef<any>(null);
+  // Each browser game gets a number. Ending, replacing or leaving a game bumps it, so
+  // events and late results from that game are ignored instead of changing the screen.
+  const gameRef = useRef(0);
+
+  // Ends the current game without touching the screen: its call is hung up (mic released)
+  // and anything it still sends is ignored.
+  const abandonGame = useCallback(() => {
+    gameRef.current += 1;
+    const call = callRef.current;
+    callRef.current = null;
+    if (call) call.stop().catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (step !== "live" || secondsLeft === null) return;
     const id = setTimeout(() => {
       setSecondsLeft((s) => {
         if (s === null || s <= 1) {
-          if (callRef.current) {
-            callRef.current.stop().catch(() => {});
-            callRef.current = null;
-          }
+          abandonGame();
           setStep("ended");
           return 0;
         }
@@ -47,30 +56,33 @@ export default function PlayPage() {
       });
     }, 1000);
     return () => clearTimeout(id);
-  }, [step, secondsLeft]);
+  }, [step, secondsLeft, abandonGame]);
 
   useEffect(() => {
-    return () => {
-      if (callRef.current) {
-        callRef.current.stop().catch(() => {});
-        callRef.current = null;
-      }
-    };
-  }, []);
+    // Leaving the page mid-connect must not leave a call (and the mic) running.
+    return () => abandonGame();
+  }, [abandonGame]);
 
   const endCall = async () => {
-    if (callRef.current) {
+    const call = callRef.current;
+    gameRef.current += 1;
+    callRef.current = null;
+    if (call) {
       try {
-        await callRef.current.stop();
+        await call.stop();
       } catch {
         // ignore teardown error
       }
-      callRef.current = null;
     }
     setStep("ended");
   };
 
   const startBrowserGame = async () => {
+    abandonGame();
+    const game = gameRef.current;
+    const isCurrent = () => game === gameRef.current;
+    // Set once the call has ended or failed; later events from it change nothing.
+    let finished = false;
     setStep("connecting");
     setErrorMessage("");
     try {
@@ -79,6 +91,7 @@ export default function PlayPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ consent: true }),
       });
+      if (!isCurrent()) return;
       if (!res.ok) {
         const body = await res.json().catch(() => ({ detail: `request failed (${res.status})` }));
         setErrorMessage(body.detail ?? `request failed (${res.status})`);
@@ -86,28 +99,39 @@ export default function PlayPage() {
         return;
       }
       const sessionData = (await res.json()) as SessionInfo;
+      if (!isCurrent()) return;
       setSecondsLeft(typeof sessionData.expires_in === "number" ? sessionData.expires_in : 120);
 
       // Dynamically load SDK in client only to prevent any server-side WebRTC issues
       const { BolnaWebCall } = await import("@bolna/web-call");
+      if (!isCurrent()) return;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const call = new BolnaWebCall({ session: sessionData as any });
       callRef.current = call;
 
       call.on("call-start", () => {
+        if (!isCurrent() || finished) return;
         setStep("live");
       });
 
       call.on("volume-level", (level: number) => {
+        if (!isCurrent() || finished) return;
         setIsSpeaking(level > 0.05);
       });
 
       call.on("call-end", () => {
+        if (!isCurrent() || finished) return;
+        finished = true;
         callRef.current = null;
         setStep("ended");
       });
 
       call.on("error", (err: { code?: string; message?: string }) => {
+        if (!isCurrent() || finished) return;
+        finished = true;
+        // Hang up so a failed call does not keep the microphone open.
+        callRef.current = null;
+        call.stop().catch(() => {});
         if (err.code === "microphone_denied") {
           setErrorMessage(
             "Microphone permission was denied. Please allow microphone access in your browser to speak with Priya."
@@ -120,6 +144,12 @@ export default function PlayPage() {
 
       await call.start();
     } catch (e: unknown) {
+      if (!isCurrent()) return;
+      finished = true;
+      if (callRef.current) {
+        callRef.current.stop().catch(() => {});
+        callRef.current = null;
+      }
       const err = e as { code?: string; message?: string };
       if (
         err?.code === "microphone_denied" ||
