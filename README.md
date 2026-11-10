@@ -68,7 +68,7 @@ Details: [docs/architecture.md](docs/architecture.md). Metric definitions:
 </tr>
 </table>
 
-More: [methodology](screenshots/09-methodology.png) · [connection states](screenshots/10-companions.png) · [design system](screenshots/11-design-system.png)
+More: [methodology](screenshots/09-methodology.png)
 
 ## Repo layout
 
