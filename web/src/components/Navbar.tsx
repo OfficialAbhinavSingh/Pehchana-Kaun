@@ -12,8 +12,6 @@ export default function Navbar() {
     { href: "/#rules", label: "How it works" },
     { href: "/leaderboard", label: "Leaderboard" },
     { href: "/methodology", label: "Methodology" },
-    { href: "/companions", label: "Companions" },
-    { href: "/design-system", label: "Design System" },
   ];
 
   return (
