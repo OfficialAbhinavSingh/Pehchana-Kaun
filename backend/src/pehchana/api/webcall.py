@@ -123,7 +123,7 @@ def mint_session(
 
 
 def _fail(db: Session, call: Call, reason: str) -> None:
-    call.status = CallStatus.FAILED  # never counts in the stats
+    call.set_status(CallStatus.FAILED, via="webcall.mint")  # never counts in the stats
     call.ended_at = utcnow()
     call.processing_error = reason
     db.commit()

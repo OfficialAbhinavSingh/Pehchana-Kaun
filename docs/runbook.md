@@ -48,10 +48,18 @@ already ringing a volunteer is not cut off.
 
 ## Reprocess a call
 
-`POST $ADMIN/admin/calls/<call_id>/reprocess` exists but is **not implemented yet**: it
-returns 501 until WS2 ships `pipeline.py` (#17). Until then there is no way to re-run a
-failed call from here; note the call id and tell Soham. Once it ships, fill in this
-section.
+A call is on the leaderboard only once it is `processed`. Re-running is safe: it replaces
+the call's transcript accusations and tags.
+
+| Situation | Command |
+|---|---|
+| One call | `POST $ADMIN/admin/calls/<call_id>/reprocess`, or `pk process <call_id>` |
+| Every call whose last run failed (`processing_error` set) | `pk process --all-failed` |
+| Calls with a recording but no result and no error (the background job was lost to a restart or deploy) | `pk process --stuck` |
+
+`--stuck` only picks calls that ended over 10 minutes ago, so it does not race a job that
+is still running. Every status change is logged as `call <id>: <from> -> <to> via <what>`,
+so the logs show where a call stopped.
 
 ## Drills
 

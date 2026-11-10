@@ -284,10 +284,16 @@ def process(
     all_failed: bool = typer.Option(
         False, "--all-failed", help="Rerun every call that previously failed processing."
     ),
+    stuck: bool = typer.Option(
+        False,
+        "--stuck",
+        help="Process ended calls whose recording arrived but whose job was lost "
+        "(no error recorded, ended over 10 minutes ago).",
+    ),
 ) -> None:
     """(Re-)run post-call processing: Deepgram, accusation detection, status=processed."""
-    if bool(call_id) == all_failed:
-        typer.echo("error: pass exactly one of CALL_ID or --all-failed", err=True)
+    if [bool(call_id), all_failed, stuck].count(True) != 1:
+        typer.echo("error: pass exactly one of CALL_ID, --all-failed or --stuck", err=True)
         raise typer.Exit(code=2)
 
     from pehchana import pipeline
@@ -295,11 +301,12 @@ def process(
 
     with get_sessionmaker()() as session:
         try:
-            calls = (
-                pipeline.process_all_failed(session)
-                if all_failed
-                else [pipeline.process_call(call_id, session=session)]
-            )
+            if all_failed:
+                calls = pipeline.process_all_failed(session)
+            elif stuck:
+                calls = pipeline.process_stuck(session)
+            else:
+                calls = [pipeline.process_call(call_id, session=session)]
         except LookupError as e:
             typer.echo(f"error: {e}", err=True)
             raise typer.Exit(code=2) from e
