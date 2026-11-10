@@ -354,3 +354,15 @@ def test_giveaway_ties_are_broken_by_name_not_row_order(board):
     add_call("kalpa", accused=12, tags=("talked_over", "other", "flat_emotion"))
     tags = [g["tag"] for g in arm(board(), "voice-a")["top_giveaways"]]
     assert tags == ["content", "flat_emotion", "other", "slow_reply", "talked_over"]
+
+
+def test_giveaways_count_detected_calls_not_tag_rows(board):
+    # Three slow replies in one caught call is one call; tags on an uncaught call are
+    # not "what gave it away".
+    add_call("kalpa", accused=10, tags=("slow_reply", "slow_reply", "slow_reply"))
+    add_call("kalpa", accused=20, tags=("too_perfect",))
+    add_call("kalpa", duration=80, tags=("slow_reply", "content"))
+    assert arm(board(), "voice-a")["top_giveaways"] == [
+        {"tag": "slow_reply", "count": 1},
+        {"tag": "too_perfect", "count": 1},
+    ]

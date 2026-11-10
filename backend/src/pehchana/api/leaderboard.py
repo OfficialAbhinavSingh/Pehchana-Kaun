@@ -109,7 +109,15 @@ def _arm_out(
 ) -> tuple[ArmStatsOut, ArmStats]:
     observations = [o for o in map(_observation, calls) if o is not None]
     stats = arm_stats(label.id, observations)
-    tags = Counter(g.tag for c in calls for g in c.giveaways)
+    # "What gave it away" is about caught calls, so count each tag once per detected call:
+    # a call with three slow replies is one slow-reply call, and heuristic tags on calls
+    # nobody accused are left out. Counts then match "N of the n_accused calls".
+    tags = Counter(
+        tag
+        for c in calls
+        if c.first_accusation_s is not None
+        for tag in {g.tag for g in c.giveaways}
+    )
     out = ArmStatsOut(
         arm_id=_public_id(label, settings.reveal_vendors),
         display_name=(label.vendor or label.public_label)

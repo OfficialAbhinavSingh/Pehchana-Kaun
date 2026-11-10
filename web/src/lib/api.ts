@@ -24,7 +24,7 @@ export type ArmStats = {
   fooled_at_60s: number | null; // null when no call lasted 60 s (survival unknown)
   max_observed_s: number | null; // longest call seen; with no median, the clock is longer than this
   curve: SurvivalPoint[];
-  top_giveaways: { tag: string; count: number }[];
+  top_giveaways: { tag: string; count: number }[]; // count = detected calls showing the tag
 };
 
 export type Leaderboard = {

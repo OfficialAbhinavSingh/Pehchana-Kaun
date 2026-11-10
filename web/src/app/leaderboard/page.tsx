@@ -291,7 +291,7 @@ export default function LeaderboardPage() {
                 items={topArm.top_giveaways}
                 totalDetected={topArm.n_accused}
                 title="What gave it away?"
-                subtitle={`Coded themes among ${topArm.n_accused} detected ${topArm.display_name} calls. One primary theme per call.`}
+                subtitle={`Share of the ${topArm.n_accused} detected ${topArm.display_name} calls showing each theme.`}
               />
               <div className="text-right">
                 <Link href="/methodology#limitations" className="font-mono text-xs text-[#ae1800] hover:underline">

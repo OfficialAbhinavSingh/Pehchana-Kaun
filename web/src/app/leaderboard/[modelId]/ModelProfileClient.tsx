@@ -162,7 +162,7 @@ export default function ModelProfileClient({ modelId }: { modelId: string }) {
               items={arm.top_giveaways}
               totalDetected={arm.n_accused}
               title="What gave it away?"
-              subtitle={`Coded giveaway themes among ${arm.n_accused} detected calls.`}
+              subtitle={`Share of the ${arm.n_accused} detected calls showing each theme.`}
             />
           </div>
         </div>

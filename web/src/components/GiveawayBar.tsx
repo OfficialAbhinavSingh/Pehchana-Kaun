@@ -5,6 +5,25 @@ interface GiveawayItem {
   count: number;
 }
 
+// Readable names for the tags in backend/src/pehchana/tagging.py (GiveawayTag).
+const TAG_LABELS: Record<string, string> = {
+  slow_reply: "Slow replies",
+  talked_over: "Talked over the caller",
+  number_reading: "Read numbers oddly",
+  pronunciation: "Mispronounced words",
+  flat_emotion: "Flat emotion",
+  too_perfect: "Too perfect",
+  wrong_language: "Missed a language switch",
+  content: "Said something no human would",
+  other: "Other",
+};
+
+function tagLabel(tag: string): string {
+  if (TAG_LABELS[tag]) return TAG_LABELS[tag];
+  const words = tag.replace(/_/g, " ");
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}
+
 interface GiveawayBarProps {
   items: GiveawayItem[];
   totalDetected?: number;
@@ -41,10 +60,11 @@ export default function GiveawayBar({
               <div className="flex items-center justify-between text-xs font-mono">
                 <span className="text-[#201e1d] font-medium flex items-center gap-2">
                   <span className="text-[#ae1800] font-bold">0{index + 1}</span>
-                  {item.tag}
+                  {tagLabel(item.tag)}
                 </span>
                 <span className="text-[#605d5d]">
-                  <strong className="text-[#ec3013]">{percent}%</strong> · {item.count} calls
+                  <strong className="text-[#ec3013]">{percent}%</strong> · {item.count}{" "}
+                  {item.count === 1 ? "call" : "calls"}
                 </span>
               </div>
               <div className="h-2 w-full overflow-hidden bg-[#f3f2f2]">
@@ -59,7 +79,8 @@ export default function GiveawayBar({
       </div>
 
       <div className="mt-5 border-t-2 border-[#201e1d] pt-3 text-[11px] font-mono text-[#7d7979]">
-        One primary theme coded per detected call. No accusation is not proof of belief.
+        A call can show more than one theme, so the shares can add up to more than 100%.
+        No accusation is not proof of belief.
       </div>
     </div>
   );
